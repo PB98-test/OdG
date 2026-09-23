@@ -149,17 +149,16 @@ def pagina_riunione(codice):
     # Testi dell'anteprima WhatsApp (tag Open Graph nel template)
     minuti = sum(p["minuti"] for p in punti)
     anteprima_titolo = f"{tipo['nome']} - {calendario.data_estesa(riunione['data'])}, ore {riunione['ora_inizio']}"
-    pezzi = []
+    # Solo il numero di punti: luogo, data e associazione sono già nell'immagine
     if punti:
-        pezzi.append(f"{len(punti)} punt{'o' if len(punti) == 1 else 'i'} all'ordine del giorno")
-    if riunione["luogo"]:
-        pezzi.append(riunione["luogo"])
-    pezzi.append("AC Ravenna-Cervia")
+        anteprima_testo = f"{len(punti)} punt{'o' if len(punti) == 1 else 'i'} all'ordine del giorno"
+    else:
+        anteprima_testo = "Ordine del giorno in preparazione"
     return render_template(
         "riunione.html",
         riunione=riunione, tipo=tipo, punti=punti, successiva=successiva,
         passata=riunione["data"] < oggi(), minuti=minuti, url=url,
-        anteprima_titolo=anteprima_titolo, anteprima_testo=" · ".join(pezzi),
+        anteprima_titolo=anteprima_titolo, anteprima_testo=anteprima_testo,
         # "?v=" cambia a ogni modifica: così l'immagine non resta quella vecchia in cache
         anteprima_img=url_for("immagine_anteprima", codice=codice, _external=True,
                               v=riunione["modificata_il"].replace(" ", "").replace(":", "")),
