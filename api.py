@@ -75,9 +75,9 @@ def toccata(db, riunione_id):
 
 def campi_tipo(dati):
     return {
-        "nome": testo(dati, "nome", obbligatorio=True, massimo=80),
-        "sottotitolo": testo(dati, "sottotitolo", massimo=80),
-        "luogo_abituale": testo(dati, "luogo_abituale"),
+        "nome": testo(dati, "nome", obbligatorio=True, massimo=34),
+        "sottotitolo": testo(dati, "sottotitolo", massimo=40),
+        "luogo_abituale": testo(dati, "luogo_abituale", massimo=60),
         "ora_abituale": ora(dati, "ora_abituale"),
         "durata_abituale": minuti(dati, "durata_abituale", 90),
     }
@@ -123,7 +123,7 @@ def campi_riunione(dati):
         "data": data(dati, "data"),
         "ora_inizio": ora(dati, "ora_inizio", obbligatorio=True),
         "ora_fine": ora(dati, "ora_fine"),
-        "luogo": testo(dati, "luogo"),
+        "luogo": testo(dati, "luogo", massimo=60),
         "link_online": testo(dati, "link_online", massimo=500),
         "note": testo(dati, "note", massimo=1000),
     }

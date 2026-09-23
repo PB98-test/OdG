@@ -3,13 +3,13 @@
   <form method="dialog" onsubmit="salvaTipo(event)">
     <h2 id="dlg-tipo-titolo">Nuovo tipo di riunione</h2>
     <label>Nome
-      <input class="campo" name="nome" maxlength="80" required placeholder="Équipe Giovani">
+      <input class="campo" name="nome" maxlength="34" required placeholder="Équipe Giovani" data-conta>
     </label>
     <label>Sottotitolo (facoltativo)
-      <input class="campo" name="sottotitolo" maxlength="80" placeholder="Settore Giovani">
+      <input class="campo" name="sottotitolo" maxlength="40" placeholder="Settore Giovani" data-conta>
     </label>
     <label>Luogo abituale
-      <input class="campo" name="luogo_abituale" placeholder="Centro diocesano, sala Paolo VI">
+      <input class="campo" name="luogo_abituale" maxlength="60" data-conta placeholder="Centro diocesano, sala Paolo VI">
     </label>
     <div class="riga-campi">
       <label>Orario abituale

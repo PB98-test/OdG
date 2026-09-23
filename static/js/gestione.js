@@ -191,4 +191,31 @@ document.addEventListener("input", e => {
   if (e.target.closest(".nuovo-punto")) mostraErrore("errore-punto");
 });
 
+// ------------------------------------------------------------ contatori di caratteri
+// I campi con "data-conta" (nome, sottotitolo, luogo) hanno un limite di lettere
+// pensato per l'immagine di anteprima: sotto il campo compare "12/34".
+
+function aggiornaContatore(campo) {
+  let contatore = campo.nextElementSibling;
+  if (!contatore || !contatore.classList.contains("contatore")) {
+    contatore = document.createElement("span");
+    contatore.className = "contatore";
+    campo.after(contatore);
+  }
+  const usati = campo.value.length, massimo = campo.maxLength;
+  contatore.textContent = `${usati}/${massimo}`;
+  contatore.classList.toggle("pieno", usati >= massimo);
+}
+
+document.addEventListener("input", e => {
+  if (e.target.matches("[data-conta]")) aggiornaContatore(e.target);
+});
+// All'apertura di una finestra i campi vengono riempiti dal codice (che non
+// genera l'evento "input"): aggiorno i contatori appena la finestra compare.
+for (const dlg of document.querySelectorAll("dialog")) {
+  new MutationObserver(() => {
+    if (dlg.open) dlg.querySelectorAll("[data-conta]").forEach(aggiornaContatore);
+  }).observe(dlg, { attributes: true, attributeFilter: ["open"] });
+}
+
 if (typeof DATI !== "undefined" && document.getElementById("punti")) disegnaPunti();

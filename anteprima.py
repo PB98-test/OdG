@@ -68,7 +68,7 @@ def disegna(riunione, tipo):
     data = data_estesa(riunione["data"])
     data = data[0].upper() + data[1:]
     f_data = _adatta(d, data, "Antonio", 124, 700, 72)
-    f_luogo = _font("Jost", 44, 500)
+    f_luogo = _adatta(d, riga_luogo, "Jost", 44, 500, 32)
     righe = [
         (_taglia(d, tipo["sottotitolo"] or "AC Ravenna-Cervia", f_sopra), f_sopra, GIALLO, 16),
         (_taglia(d, tipo["nome"], f_nome), f_nome, BIANCO, 12),
