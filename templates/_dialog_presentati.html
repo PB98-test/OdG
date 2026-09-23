@@ -1,0 +1,23 @@
+{# "Come ti chiami?": compare alla prima azione (proporre, spuntare...) di chi
+   non è ancora riconosciuto. Inclusa in tutte le pagine da base.html. #}
+<dialog id="dlg-presentati">
+  <form onsubmit="inviaNome(event)">
+    <h2>Come ti chiami?</h2>
+    <p class="spiega">Serve per firmare le tue proposte. Questo dispositivo se lo ricorderà: non dovrai più scriverlo.</p>
+    <div id="presentati-elenco-box" style="display: none">
+      <div class="sotto-titolo">Sei una di queste persone?</div>
+      <div id="presentati-elenco" class="elenco-scelte"></div>
+      <div class="sotto-titolo">Oppure scrivi il tuo nome</div>
+    </div>
+    <label>Nome e iniziale del cognome
+      <input class="campo" name="nome" maxlength="30" placeholder="Anna B." autocomplete="name">
+    </label>
+    <div class="errore-form" id="presentati-errore"></div>
+    <p class="nota">Hai un ruolo nell'associazione? Usa il link personale che ti ha mandato l'amministratore.</p>
+    <div class="dlg-azioni">
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="annullaNome()">Annulla</button>
+      <button type="submit" class="btn btn-blu">Continua</button>
+    </div>
+  </form>
+</dialog>

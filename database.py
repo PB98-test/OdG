@@ -36,11 +36,22 @@ def close_db(exc=None):
         db.close()
 
 
+# Colonne aggiunte a tabelle che esistevano già: (tabella, colonna, definizione).
+# SQLite non ha "ADD COLUMN IF NOT EXISTS", quindi si controlla a mano.
+COLONNE_AGGIUNTE = [
+    ("punti", "proposto_da", "INTEGER REFERENCES persone(id) ON DELETE SET NULL"),
+]
+
+
 def assicura_db():
-    """A ogni avvio: crea il database se manca e aggiunge le tabelle nuove.
+    """A ogni avvio: crea il database se manca e aggiunge tabelle e colonne nuove.
     Grazie a "IF NOT EXISTS" nello schema non tocca mai i dati esistenti."""
     conn = sqlite3.connect(DATABASE)
     conn.executescript(SCHEMA.read_text(encoding="utf-8"))
+    for tabella, colonna, definizione in COLONNE_AGGIUNTE:
+        esistenti = [r[1] for r in conn.execute(f"PRAGMA table_info({tabella})")]
+        if colonna not in esistenti:
+            conn.execute(f"ALTER TABLE {tabella} ADD COLUMN {colonna} {definizione}")
     conn.commit()
     conn.close()
 

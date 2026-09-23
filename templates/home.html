@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macro.html" import ic %}
+{% from "_macro.html" import ic, chip_io %}
 
 {% block testata %}
 <header class="testata">
@@ -11,6 +11,8 @@
         <div class="ente">Azione Cattolica Ravenna-Cervia</div>
       </div>
     </div>
+    <span class="spazio"></span>
+    {{ chip_io(io, anche_anonimo=True) }}
   </div>
 </header>
 {% endblock %}
@@ -39,26 +41,28 @@
     </div>
     {% else %}
     <div class="scheda vuoto">
-      {% if gestione %}Crea il primo tipo di riunione, per esempio "Équipe Giovani" o "Consiglio diocesano".
+      {% if puo('riunioni') %}Crea il primo tipo di riunione, per esempio "Équipe Giovani" o "Consiglio diocesano".
       {% else %}Qui compariranno le riunioni dell'Azione Cattolica di Ravenna-Cervia.{% endif %}
     </div>
     {% endif %}
 
-    {% if gestione %}
+    {% if puo('riunioni') %}
     <button class="btn btn-giallo btn-largo" style="margin-top: 12px" onclick="apriDialogTipo()">
       {{ ic('plus') }} Nuovo tipo di riunione
     </button>
     {% endif %}
   </section>
 
-  {% if gestione %}
-  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
+  {% if puo('persone') %}
+  <a class="collegamento" style="margin-top: 22px" href="{{ url_for('pagina_persone') }}">
+    {{ ic('users') }}<span class="corpo">Persone e ruoli</span>{{ ic('chevron-right') }}
+  </a>
   {% endif %}
 </div>
 
-{% if gestione %}{% include "_dialog_tipo.html" %}{% endif %}
+{% if puo('riunioni') %}{% include "_dialog_tipo.html" %}{% endif %}
 {% endblock %}
 
 {% block scripts %}
-{% if gestione %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
+{% if puo('riunioni') %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
 {% endblock %}

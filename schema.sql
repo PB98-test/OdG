@@ -51,3 +51,71 @@ CREATE TABLE IF NOT EXISTS punti (
     spostato_da  INTEGER REFERENCES punti(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_punti_riunione ON punti(riunione_id, ordine);
+-- (La colonna punti.proposto_da, aggiunta nella tappa 3, la crea database.py:
+--  "CREATE TABLE IF NOT EXISTS" non aggiunge colonne a una tabella che esiste già.)
+
+
+-- ======================================================== tappa 3: persone e ruoli
+
+-- Un ruolo e i suoi permessi (1 = concesso). Proporre, spuntare e usare il
+-- timer sono aperti a tutti, quindi non compaiono qui.
+CREATE TABLE IF NOT EXISTS ruoli (
+    id            INTEGER PRIMARY KEY,
+    nome          TEXT NOT NULL,
+    perm_riunioni INTEGER NOT NULL DEFAULT 0,  -- crea e modifica riunioni e tipi
+    perm_odg      INTEGER NOT NULL DEFAULT 0,  -- modifica l'OdG direttamente, approva le proposte
+    perm_conclude INTEGER NOT NULL DEFAULT 0,  -- conclude la riunione (tappa 4)
+    perm_verbale  INTEGER NOT NULL DEFAULT 0,  -- scrive il verbale (tappa 4)
+    perm_persone  INTEGER NOT NULL DEFAULT 0,  -- gestisce persone e ruoli
+    di_base       INTEGER NOT NULL DEFAULT 0   -- 1 = non si può eliminare
+);
+-- I due ruoli di partenza. "OR IGNORE": se esistono già (anche rinominati) non si toccano.
+INSERT OR IGNORE INTO ruoli (id, nome, perm_riunioni, perm_odg, perm_conclude, perm_verbale, perm_persone, di_base)
+VALUES (1, 'Amministratore', 1, 1, 1, 1, 1, 1),
+       (2, 'Partecipante',   0, 0, 0, 0, 0, 1);
+
+CREATE TABLE IF NOT EXISTS persone (
+    id        INTEGER PRIMARY KEY,
+    nome      TEXT NOT NULL,                   -- "Anna B." (nome + iniziale del cognome)
+    colore    TEXT NOT NULL,                   -- colore delle sue proposte e spunte
+    ruolo_id  INTEGER NOT NULL DEFAULT 2 REFERENCES ruoli(id),
+    creata_il TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- I dispositivi (telefono, PC...) con cui una persona usa OdG. Il browser tiene
+-- un "gettone" casuale in un cookie; qui se ne salva solo l'impronta (hash):
+-- anche chi leggesse il database non potrebbe spacciarsi per qualcuno.
+CREATE TABLE IF NOT EXISTS dispositivi (
+    id          INTEGER PRIMARY KEY,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    impronta    TEXT NOT NULL UNIQUE,
+    creato_il   TEXT NOT NULL DEFAULT (datetime('now')),
+    ultimo_uso  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Link monouso: "usa OdG su un altro dispositivo" (15 minuti) e link di
+-- attivazione mandati da un amministratore (7 giorni).
+CREATE TABLE IF NOT EXISTS inviti (
+    id          INTEGER PRIMARY KEY,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    impronta    TEXT NOT NULL UNIQUE,
+    scade_il    TEXT NOT NULL,
+    usato_il    TEXT
+);
+
+-- Proposte di modifica all'OdG, da approvare.
+CREATE TABLE IF NOT EXISTS proposte (
+    id          INTEGER PRIMARY KEY,
+    riunione_id INTEGER NOT NULL REFERENCES riunioni(id) ON DELETE CASCADE,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    tipo        TEXT NOT NULL CHECK (tipo IN ('aggiungi', 'modifica', 'togli')),
+    punto_id    INTEGER REFERENCES punti(id) ON DELETE CASCADE,  -- per modifica e togli
+    titolo      TEXT,
+    minuti      INTEGER,
+    stato       TEXT NOT NULL DEFAULT 'in_attesa'
+                CHECK (stato IN ('in_attesa', 'approvata', 'rifiutata', 'ritirata')),
+    creata_il   TEXT NOT NULL DEFAULT (datetime('now')),
+    decisa_da   INTEGER REFERENCES persone(id) ON DELETE SET NULL,
+    decisa_il   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_proposte_riunione ON proposte(riunione_id, stato);

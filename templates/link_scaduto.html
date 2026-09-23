@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Link non valido · OdG{% endblock %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <a class="marchio" href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+      <div><div class="nome">OdG</div><div class="ente">Azione Cattolica Ravenna-Cervia</div></div>
+    </a>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  <div class="scheda vuoto">
+    Questo link non è più valido: è scaduto oppure è già stato usato.<br>
+    Chiedine uno nuovo a chi te l'ha mandato.
+  </div>
+  <a class="btn btn-blu btn-largo" style="margin-top: 12px" href="{{ url_for('home') }}">Vai a tutte le riunioni</a>
+</div>
+{% endblock %}

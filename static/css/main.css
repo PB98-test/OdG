@@ -227,3 +227,81 @@ dialog.foglio {
   padding: 9px 18px; border-radius: 20px; font-size: 14px; font-weight: 500;
   max-width: 90%; text-align: center; z-index: 100;
 }
+
+/* ======================================================== tappa 3: persone e proposte */
+
+/* Pallino colorato e cerchio con le iniziali di una persona */
+.pallino { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; color: var(--bianco); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;
+  border: 2px solid rgba(255,255,255,.85);
+}
+.avatar.grande { width: 52px; height: 52px; font-size: 19px; border: none; }
+
+/* Testi di aiuto */
+.spiega { font-size: 15px; color: var(--testo-tenue); line-height: 1.45; margin-bottom: 12px; }
+.nota { font-size: 13px; color: var(--testo-tenue); line-height: 1.4; margin: 6px 0 10px; }
+.etichetta-form { font-size: 13px; color: var(--testo-tenue); margin-top: 12px; }
+.sotto-titolo { font-size: 13px; font-weight: 500; color: var(--testo-tenue); margin: 4px 0 6px; }
+
+/* "Come ti chiami?": profili creati in anticipo tra cui scegliere */
+.elenco-scelte { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.scelta-persona {
+  display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 99px;
+  background: var(--bianco); border: 1px solid var(--bordo); font-size: 15px;
+}
+
+/* Punti: firma "proposto da" e comandi per proporre */
+.firma { display: flex; align-items: center; font-size: 12px; margin-top: 2px; }
+.btn-icona.testo { font-size: 13px; gap: 4px; }
+.btn-icona.testo .ic { width: 16px; height: 16px; }
+.btn-icona[disabled] { opacity: .3; cursor: default; }
+
+/* Proposte in attesa */
+.titolo-proposte { font-size: 15px; font-weight: 500; color: var(--testo-tenue); margin: 18px 0 8px; }
+.proposta {
+  background: var(--bianco); border: 1.5px solid; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+}
+.proposta .chi { display: flex; align-items: center; font-size: 13px; font-weight: 500; }
+.proposta .cosa { font-size: 16px; line-height: 1.4; margin: 4px 0 8px; overflow-wrap: anywhere; }
+.proposta .vecchio { color: var(--testo-debole); }
+.azioni-proposta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.attesa { font-size: 13px; color: var(--testo-debole); flex: 1; }
+
+/* Link monouso: QR code e link */
+.qr { display: flex; justify-content: center; margin: 4px 0 12px; }
+.qr svg { width: 200px; height: 200px; }
+.link-monouso { width: 100%; font-size: 13px; color: var(--testo-tenue); }
+
+/* Profilo */
+.profilo-scheda { display: flex; align-items: center; gap: 14px; padding: 14px; }
+.profilo-scheda .principale { font-size: 18px; font-weight: 500; }
+.profilo-scheda .secondaria { font-size: 14px; color: var(--testo-tenue); }
+
+/* Persone e ruoli */
+.riquadro-form { padding: 4px 12px 12px; }
+.nuova-persona { display: flex; gap: 6px; }
+.nuova-persona input { flex: 1; min-width: 0; }
+.nuova-persona select { width: 42%; }
+button.voce { width: 100%; text-align: left; font: inherit; color: inherit; }
+.voce.persona .principale, .voce.persona .secondaria { display: block; }
+.voce.persona .ic { color: var(--testo-debole); }
+.in-attesa { color: var(--giallo-testo); }
+.tu { color: var(--testo-debole); font-weight: 400; }
+.scheda-persona { padding: 12px; margin-top: -4px; border-top-left-radius: 0; border-top-right-radius: 0; }
+.scheda-persona label { display: block; font-size: 13px; color: var(--testo-tenue); margin-bottom: 10px; }
+.scheda-persona label .campo { display: block; width: 100%; margin-top: 3px; }
+.colori { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+.colore { width: 30px; height: 30px; border-radius: 50%; margin: 0 !important; position: relative; cursor: pointer; }
+.colore input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.colore:has(input:checked) { box-shadow: 0 0 0 2px var(--bianco), 0 0 0 4px var(--testo); }
+.azioni-persona { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.unisci { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--testo-tenue); flex-wrap: wrap; }
+.unisci select { flex: 1; min-width: 120px; height: 36px; font-size: 14px; }
+.scheda-ruolo { padding: 10px 12px; margin-bottom: 8px; }
+.testa-ruolo { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.testa-ruolo input { flex: 1; min-width: 0; font-weight: 500; }
+.testa-ruolo .meta { font-size: 13px; color: var(--testo-tenue); white-space: nowrap; }
+.permesso { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 4px 0; cursor: pointer; }
+.permesso input { width: 18px; height: 18px; accent-color: var(--blu); }

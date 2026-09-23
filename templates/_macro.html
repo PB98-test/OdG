@@ -6,6 +6,18 @@
 <svg class="ic" aria-hidden="true"><use href="{{ url_for('static', filename='img/icone.svg') }}#{{ nome }}"></use></svg>
 {%- endmacro %}
 
+{# Chi sta usando l'app, in alto a destra: cerchio colorato con le iniziali
+   (porta al profilo). Se non è ancora riconosciuto, "Chi sei?".
+   Le macro non vedono le variabili della pagina: "io" va passato. #}
+{% macro chip_io(io, anche_anonimo=False) -%}
+{%- if io -%}
+<a class="avatar" href="{{ url_for('pagina_profilo') }}" style="background: {{ io.colore }}" title="{{ io.nome }}"
+   aria-label="Il tuo profilo: {{ io.nome }}">{{ (io.nome.split()|map('first')|join(''))[:2]|upper }}</a>
+{%- elif anche_anonimo -%}
+<button class="btn-testata" onclick="chiediNome().then(ok => ok && location.reload())">Chi sei?</button>
+{%- endif -%}
+{%- endmacro %}
+
 {# Riquadro blu con giorno e mese, usato negli elenchi di riunioni #}
 {% macro giorno(iso) -%}
 {%- set parti = iso.split('-') -%}

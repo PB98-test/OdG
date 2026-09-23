@@ -1,7 +1,7 @@
 """Entry point dell'app Flask: pagine, file per il calendario, immagine di anteprima."""
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,22 +13,22 @@ from dotenv import load_dotenv
 # si portava dietro le chiavi già caricate e ignorava quelle nuove del file.
 load_dotenv(Path(__file__).parent / ".env", override=True)
 
-from flask import (Flask, Response, abort, redirect, render_template,  # noqa: E402
-                   send_file, session, url_for)
+from flask import (Flask, Response, abort, g, jsonify, redirect,  # noqa: E402
+                   render_template, request, send_file, session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 
 import anteprima  # noqa: E402
 import api  # noqa: E402
+import api_persone  # noqa: E402
 import calendario  # noqa: E402
 import database  # noqa: E402
+import identita  # noqa: E402
 from database import get_db  # noqa: E402
 
 database.assicura_db()   # crea il database se manca, aggiunge le tabelle nuove
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-me")
-# Il "ricordami" della gestione dura un anno: non serve rientrare ogni volta
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=365)
 # Su PythonAnywhere l'app sta dietro un "proxy" che riceve le richieste in HTTPS
 # e le passa a Flask. ProxyFix fa sì che Flask sappia che il visitatore è
 # arrivato in HTTPS: serve per costruire link assoluti corretti (anteprima WhatsApp).
@@ -36,6 +36,18 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 app.teardown_appcontext(database.close_db)
 app.register_blueprint(api.bp)
+app.register_blueprint(api_persone.bp)
+
+
+@app.before_request
+def prima_di_ogni_richiesta():
+    # Le azioni che modificano qualcosa devono arrivare come JSON dalle nostre
+    # pagine. Un sito estraneo non può mandare JSON al nostro senza un permesso
+    # esplicito del browser: così nessuno può far compiere azioni a chi è
+    # riconosciuto da OdG facendogli aprire una pagina trappola.
+    if request.path.startswith("/api/") and request.method != "GET" and not request.is_json:
+        return jsonify(errore="Richiesta non valida"), 415
+    identita.riconosci()   # chi sta usando l'app? (mette la persona in g.io)
 
 
 @app.after_request
@@ -44,13 +56,13 @@ def niente_motori_di_ricerca(risposta):
     # Non si usa robots.txt apposta: bloccherebbe anche WhatsApp, che allora
     # non riuscirebbe più a leggere la pagina per costruire l'anteprima.
     risposta.headers["X-Robots-Tag"] = "noindex, nofollow"
-    return risposta
+    return identita.scrivi_cookie(risposta)
 
 
 @app.context_processor
 def variabili_comuni():
     """Variabili disponibili in tutti i template."""
-    return {"gestione": bool(session.get("gestione"))}
+    return {"io": g.get("io"), "puo": identita.puo}
 
 
 # Funzioni usabili ovunque nei template, anche dentro i "mattoncini" di _macro.html
@@ -67,26 +79,48 @@ def ping():
     return {"ok": True}
 
 
-# ---------------------------------------------------------------- gestione
-# Finché non costruiamo persone e ruoli (tappa 3), chi gestisce entra con un
-# link segreto: /entra/<chiave>, con la chiave scritta nel file .env.
-# Il browser se lo ricorda per un anno.
+# ---------------------------------------------------------------- accessi speciali
 
 @app.route("/entra/<chiave>")
 def entra(chiave):
+    """Link d'EMERGENZA: rende amministratore chi lo apre. Serve per il primo
+    amministratore, o se tutti gli amministratori perdessero l'accesso.
+    La chiave è nel file .env del server."""
     attesa = os.environ.get("ODG_CHIAVE_GESTIONE", "")
     # compare_digest confronta in tempo costante: non lascia indizi sulla chiave
     if not attesa or not secrets.compare_digest(chiave, attesa):
         abort(404)
-    session.permanent = True
-    session["gestione"] = True
-    return redirect(url_for("home"))
+    if g.io:   # dispositivo già riconosciuto: diventa subito amministratore
+        db = get_db()
+        db.execute("UPDATE persone SET ruolo_id=1 WHERE id=?", (g.io["id"],))
+        db.commit()
+        return redirect(url_for("home", benvenuto="amministratore"))
+    # Non ancora riconosciuto: gli chiediamo il nome, e alla risposta diventa
+    # amministratore (vedi "promuovi" in api_persone.presentati)
+    session["promuovi"] = True
+    return redirect(url_for("home", presentati=1))
 
 
-@app.route("/esci")
-def esci():
-    session.pop("gestione", None)
-    return redirect(url_for("home"))
+@app.route("/i/<gettone>", methods=["GET", "POST"])
+def usa_link_invito(gettone):
+    """Link monouso: attivazione mandata da un amministratore, o "usa OdG anche
+    su un altro dispositivo"."""
+    db = get_db()
+    persona_id = identita.invito_valido(db, gettone)
+    if not persona_id:
+        return render_template("link_scaduto.html"), 410
+    if g.io and g.io["id"] == persona_id:          # questo dispositivo è già suo
+        return redirect(url_for("home"))
+    if g.io and request.method == "GET":
+        # Il dispositivo appartiene a un'altra persona (es. l'amministratore apre
+        # per sbaglio il link destinato a qualcun altro): chiedo conferma prima
+        # di cambiare, e il link resta valido finché non si conferma.
+        destinatario = db.execute("SELECT nome FROM persone WHERE id=?", (persona_id,)).fetchone()
+        return render_template("conferma_cambio.html", destinatario=destinatario["nome"])
+    identita.usa_invito(db, gettone)
+    identita.lega_dispositivo(db, persona_id)
+    db.commit()
+    return redirect(url_for("home", benvenuto="collegato"))
 
 
 # ---------------------------------------------------------------- pagine
@@ -166,8 +200,9 @@ def pagina_riunione(codice):
         # Dati per il JavaScript della pagina (nel template passano dal filtro
         # "tojson", che li protegge anche se un titolo contiene caratteri strani)
         dati={
-            "riunione": dict(riunione), "tipo": dict(tipo),
-            "punti": [dict(p) for p in punti], "url": url, "titolo_condivisione": anteprima_titolo,
+            "riunione": dict(riunione), "tipo": dict(tipo), **api.stato(db, riunione["id"]),
+            "url": url, "titolo_condivisione": anteprima_titolo, "passata": riunione["data"] < oggi(),
+            "io": g.io,
         },
     )
 
@@ -191,6 +226,22 @@ def immagine_anteprima(codice):
     risposta = send_file(anteprima.disegna(riunione, tipo), mimetype="image/png")
     risposta.headers["Cache-Control"] = "public, max-age=86400"
     return risposta
+
+
+@app.route("/profilo")
+def pagina_profilo():
+    if not g.io:
+        return redirect(url_for("home", presentati=1))
+    return render_template("profilo.html")
+
+
+@app.route("/persone")
+def pagina_persone():
+    if not identita.puo("persone"):
+        abort(404)
+    # Elenco di coppie (e non dizionario): passando alla pagina, Flask metterebbe
+    # le chiavi di un dizionario in ordine alfabetico, mescolando i permessi
+    return render_template("persone.html", permessi=list(identita.PERMESSI.items()))
 
 
 @app.errorhandler(404)

@@ -1,0 +1,16 @@
+{# Finestra che mostra un link monouso (attivazione o "altro dispositivo"):
+   QR code da inquadrare, link da condividere o copiare. La riempie mostraLink()
+   in comune.js. #}
+{% from "_macro.html" import ic %}
+<dialog id="dlg-link">
+  <h2 id="dlg-link-titolo">Link</h2>
+  <p class="spiega" id="dlg-link-testo"></p>
+  <div class="qr" id="dlg-link-qr"></div>
+  <input class="campo link-monouso" id="dlg-link-url" readonly aria-label="Link" onclick="this.select()">
+  <div class="dlg-azioni">
+    <button type="button" class="btn btn-contorno" onclick="condividiLinkMonouso()">{{ ic('share') }} Condividi</button>
+    <button type="button" class="btn btn-contorno" onclick="copiaLinkMonouso()">{{ ic('copy') }} Copia</button>
+    <span class="spazio"></span>
+    <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Chiudi</button>
+  </div>
+</dialog>

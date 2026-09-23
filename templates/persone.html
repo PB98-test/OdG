@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macro.html" import ic, chip_io %}
+
+{% block title %}Persone e ruoli · OdG{% endblock %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <a class="indietro" href="{{ url_for('home') }}">{{ ic('chevron-left') }} Tutte le riunioni</a>
+    <span class="spazio"></span>
+    {{ chip_io(io) }}
+  </div>
+  <div class="sopra">Gestione</div>
+  <h1>Persone e ruoli</h1>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>Persone</h2><span class="meta" id="conta-persone"></span></div>
+    <div class="elenco" id="elenco-persone"><div class="scheda vuoto">Caricamento…</div></div>
+
+    <div class="scheda riquadro-form" style="margin-top: 12px">
+      <div class="etichetta-form">Aggiungi una persona in anticipo</div>
+      <p class="nota">Chi ha un ruolo senza permessi la sceglierà dall'elenco al primo accesso.
+        Per i ruoli con permessi riceverai un link personale da mandarle.</p>
+      <form class="nuova-persona" onsubmit="aggiungiPersona(event)">
+        <input class="campo" name="nome" maxlength="30" placeholder="Anna B." aria-label="Nome e iniziale del cognome">
+        <select class="campo" name="ruolo_id" aria-label="Ruolo" id="scelta-ruolo-nuova"></select>
+        <button class="btn btn-blu" aria-label="Aggiungi">{{ ic('user-plus') }}</button>
+      </form>
+      <div class="errore-form" id="errore-persona"></div>
+    </div>
+  </section>
+
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>Ruoli</h2></div>
+    <p class="nota" style="margin-top: -4px">Tutti possono proporre modifiche, spuntare i punti e usare il timer.</p>
+    <div id="elenco-ruoli"></div>
+    <div class="errore-form" id="errore-ruolo"></div>
+    <button class="btn btn-giallo btn-largo" style="margin-top: 10px" onclick="nuovoRuolo()">{{ ic('plus') }} Nuovo ruolo</button>
+  </section>
+</div>
+{% include "_dialog_link.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>const PERMESSI = {{ permessi|tojson }};</script>
+<script src="{{ url_for('static', filename='js/persone.js') }}"></script>
+{% endblock %}

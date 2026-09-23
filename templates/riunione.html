@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macro.html" import ic %}
+{% from "_macro.html" import ic, chip_io %}
 
 {% block title %}{{ anteprima_titolo }} · OdG{% endblock %}
 
@@ -27,10 +27,11 @@
   <div class="testata-barra">
     <a class="indietro" href="{{ url_for('pagina_tipo', codice=tipo.codice) }}">{{ ic('chevron-left') }} {{ tipo.nome }}</a>
     <span class="spazio"></span>
-    {% if gestione %}
+    {% if puo('riunioni') %}
     <button class="btn-testata" onclick="apriDialogRiunione({tipo: DATI.tipo, riunione: DATI.riunione})">{{ ic('pencil') }} Modifica</button>
     {% endif %}
-    <img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+    {{ chip_io(io) }}
+    {% if not io %}<img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">{% endif %}
   </div>
   <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>
   <h1>{{ tipo.nome }} {% if passata %}<span class="etichetta">Passata</span>{% endif %}</h1>
@@ -60,8 +61,9 @@
       <h2>Ordine del giorno</h2>
       <span class="meta" id="totale-minuti">{% if minuti %}{{ minuti }} min previsti{% endif %}</span>
     </div>
-    {# Per chi legge, l'elenco arriva già pronto dal server. In gestione lo ridisegna
-       il JavaScript (riunione.js), aggiungendo i comandi per modificarlo. #}
+    {# L'elenco arriva già pronto dal server (è quello che vede anche chi non ha
+       JavaScript); poi riunione.js lo ridisegna con i comandi giusti per ognuno:
+       modifica diretta per chi ha il permesso, proposte per tutti gli altri. #}
     <ol class="punti" id="punti">
       {% for p in punti %}
       <li class="punto"><span class="num">{{ loop.index }}</span><span class="titolo">{{ p.titolo }}</span><span class="pillola">{{ p.minuti }} min</span></li>
@@ -69,16 +71,20 @@
       <li class="scheda vuoto">L'ordine del giorno non è ancora stato scritto.</li>
       {% endfor %}
     </ol>
-    {% if gestione %}
-    <form class="nuovo-punto" onsubmit="aggiungiPunto(event)">
-      <input type="text" name="titolo" maxlength="200" placeholder="Nuovo punto" aria-label="Titolo del nuovo punto">
+    {% if puo('odg') or not passata %}
+    <div class="etichetta-form">{{ "Aggiungi un punto" if puo('odg') else "Proponi un punto" }}</div>
+    <form class="nuovo-punto" style="margin-top: 4px" onsubmit="aggiungiPunto(event)">
+      <input type="text" name="titolo" maxlength="200" placeholder="{{ 'Nuovo punto' if puo('odg') else 'Il punto che vorresti' }}" aria-label="Titolo del punto">
       <select name="minuti" aria-label="Minuti previsti">
         {% for m in [5, 10, 15, 20, 25, 30, 45, 60] %}<option value="{{ m }}" {{ 'selected' if m == 10 }}>{{ m }} min</option>{% endfor %}
       </select>
-      <button class="btn btn-blu" aria-label="Aggiungi">{{ ic('plus') }}</button>
+      <button class="btn btn-blu" aria-label="{{ 'Aggiungi' if puo('odg') else 'Invia proposta' }}">{{ ic('plus' if puo('odg') else 'send') }}</button>
     </form>
     <div class="errore-form" id="errore-punto"></div>
     {% endif %}
+
+    {# Proposte in attesa: le disegna riunione.js #}
+    <div id="proposte"></div>
   </section>
 
   <section class="sezione">
@@ -88,7 +94,7 @@
       <span class="corpo">Riunione successiva: <b style="font-weight: 500">{{ data_estesa(successiva.data) }}</b></span>
       {{ ic('chevron-right') }}
     </a>
-    {% elif gestione %}
+    {% elif puo('riunioni') %}
     <button class="btn btn-giallo btn-largo" onclick="apriDialogRiunione({tipo: DATI.tipo, dopo: DATI.riunione})">
       {{ ic('calendar-plus') }} Fissa la prossima riunione
     </button>
@@ -98,9 +104,6 @@
     </a>
   </section>
 
-  {% if gestione %}
-  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
-  {% endif %}
 </div>
 
 {# ---- Foglio "Salva la data" ---- #}
@@ -133,11 +136,31 @@
   <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
 </dialog>
 
-{% if gestione %}{% include "_dialog_riunione.html" %}{% endif %}
+{# Proposta di modifica di un punto (per chi non può modificare direttamente) #}
+<dialog id="dlg-proposta">
+  <form onsubmit="inviaProposta(event)">
+    <h2>Proponi una modifica</h2>
+    <p class="spiega" id="proposta-originale"></p>
+    <label>Titolo
+      <input class="campo" name="titolo" maxlength="200">
+    </label>
+    <label>Minuti previsti
+      <input class="campo" name="minuti" type="number" min="1" max="600">
+    </label>
+    <div class="errore-form" id="proposta-errore"></div>
+    <div class="dlg-azioni">
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+      <button type="submit" class="btn btn-blu">Invia proposta</button>
+    </div>
+  </form>
+</dialog>
+
+{% if puo('riunioni') %}{% include "_dialog_riunione.html" %}{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>const DATI = {{ dati|tojson }};</script>
 <script src="{{ url_for('static', filename='js/riunione.js') }}"></script>
-{% if gestione %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
+{% if puo('riunioni') %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
 {% endblock %}

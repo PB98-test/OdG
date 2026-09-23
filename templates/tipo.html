@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macro.html" import ic, voce_riunione %}
+{% from "_macro.html" import ic, voce_riunione, chip_io %}
 
 {% block title %}{{ tipo.nome }} · OdG{% endblock %}
 
@@ -8,10 +8,11 @@
   <div class="testata-barra">
     <a class="indietro" href="{{ url_for('home') }}">{{ ic('chevron-left') }} Tutte le riunioni</a>
     <span class="spazio"></span>
-    {% if gestione %}
+    {% if puo('riunioni') %}
     <button class="btn-testata" onclick="apriDialogTipo(TIPO)">{{ ic('pencil') }} Modifica</button>
     {% endif %}
-    <img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+    {{ chip_io(io) or '' }}
+    {% if not io %}<img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">{% endif %}
   </div>
   <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>
   <h1>{{ tipo.nome }}</h1>
@@ -33,7 +34,7 @@
     {% else %}
     <div class="scheda vuoto">Nessuna riunione in programma.</div>
     {% endif %}
-    {% if gestione %}
+    {% if puo('riunioni') %}
     <button class="btn btn-giallo btn-largo" style="margin-top: 12px" onclick="apriDialogRiunione({tipo: TIPO})">
       {{ ic('calendar-plus') }} Fissa una riunione
     </button>
@@ -47,19 +48,16 @@
   </section>
   {% endif %}
 
-  {% if gestione %}
-  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
-  {% endif %}
 </div>
 
-{% if gestione %}
+{% if puo('riunioni') %}
 {% include "_dialog_tipo.html" %}
 {% include "_dialog_riunione.html" %}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
-{% if gestione %}
+{% if puo('riunioni') %}
 <script>const TIPO = {{ tipo_dati|tojson }};</script>
 <script src="{{ url_for('static', filename='js/gestione.js') }}"></script>
 {% endif %}
