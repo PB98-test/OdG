@@ -17,8 +17,9 @@ BLU, GIALLO = (17, 77, 138), (249, 185, 34)
 BIANCO, AZZURRO = (255, 255, 255), (220, 230, 242)
 L, H = 1200, 630
 STRISCIA = 18                     # striscia gialla in fondo
-LOGO, X_LOGO = 150, 80            # lato del logo e distanza dal bordo sinistro
-X_TESTO, X_MAX = X_LOGO + LOGO + 50, 1150   # colonna del testo, a destra del logo
+LOGO, MARGINE = 150, 65           # lato del logo; spazio uguale a sinistra e a destra del logo
+X_LOGO = MARGINE
+X_TESTO, X_MAX = X_LOGO + LOGO + MARGINE, 1150   # colonna del testo, a destra del logo
 
 
 def _font(nome, dimensione, peso):

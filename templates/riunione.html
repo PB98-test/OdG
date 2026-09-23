@@ -47,7 +47,7 @@
   {% if not passata %}
   <div class="azioni">
     <button class="btn btn-giallo" onclick="document.getElementById('foglio-data').showModal()">{{ ic('calendar-plus') }} Salva la data</button>
-    <button class="btn btn-contorno" onclick="document.getElementById('foglio-condividi').showModal()">{{ ic('share') }} Condividi</button>
+    <button class="btn btn-contorno" onclick="condividi()">{{ ic('share') }} Condividi</button>
   </div>
   {% endif %}
 
@@ -117,17 +117,15 @@
   <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
 </dialog>
 
-{# ---- Foglio "Condividi" ---- #}
+{# ---- Foglio "Condividi" ----
+   Sui telefoni non compare: "Condividi" apre direttamente il menu di condivisione
+   del telefono (vedi riunione.js). Serve sui computer, dove quel menu non c'è. #}
 <dialog class="foglio" id="foglio-condividi">
   <h2>Condividi</h2>
   <a class="opzione" id="condividi-whatsapp" href="#" target="_blank" rel="noopener">
     <span class="quadro">{{ ic('brand-whatsapp') }}</span>
-    <span class="corpo"><span class="principale">WhatsApp</span><span class="secondaria">Scegli tu la chat o il gruppo</span></span>
+    <span class="corpo"><span class="principale">WhatsApp</span><span class="secondaria">WhatsApp Web o l'app del computer</span></span>
   </a>
-  <button class="opzione" id="condividi-altro" style="display: none" onclick="condividiAltro()">
-    <span class="quadro">{{ ic('share') }}</span>
-    <span class="corpo"><span class="principale">Altre app</span><span class="secondaria">Telegram, email, messaggi...</span></span>
-  </button>
   <button class="opzione" onclick="copiaLink()">
     <span class="quadro">{{ ic('copy') }}</span>
     <span class="corpo"><span class="principale">Copia il link</span><span class="secondaria">Da incollare dove vuoi</span></span>

@@ -3,20 +3,29 @@
 
 const testoCondivisione = `${DATI.titolo_condivisione}\n${DATI.url}`;
 
-// WhatsApp: il link "wa.me/?text=..." apre WhatsApp con il messaggio già scritto
-// e lascia scegliere la chat o il gruppo a cui mandarlo.
+// Sul computer: il link "wa.me/?text=..." apre WhatsApp Web (o l'app del computer)
+// con il messaggio già scritto, lasciando scegliere la chat o il gruppo.
 document.getElementById("condividi-whatsapp").href =
   "https://wa.me/?text=" + encodeURIComponent(testoCondivisione);
 
-// "Altre app": il menu di condivisione del telefono (esiste solo su telefoni e
-// alcuni browser, per questo il pulsante compare solo se disponibile).
-if (navigator.share) document.getElementById("condividi-altro").style.display = "";
-
-async function condividiAltro() {
-  try {
-    await navigator.share({ title: DATI.titolo_condivisione, text: DATI.titolo_condivisione, url: DATI.url });
-    document.getElementById("foglio-condividi").close();
-  } catch (e) { /* condivisione annullata: non c'è niente da fare */ }
+/**
+ * Sui telefoni si apre il menu di condivisione del sistema (quello con le icone
+ * di WhatsApp, Telegram, email...). È la strada più sicura: se sul telefono ci
+ * sono sia WhatsApp sia WhatsApp Business, il menu le mostra entrambe e la
+ * persona sceglie; il link wa.me invece apre quella che decide il telefono.
+ * Dove il menu non esiste (computer) si apre il nostro foglio "Condividi".
+ */
+async function condividi() {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: DATI.titolo_condivisione, text: DATI.titolo_condivisione, url: DATI.url });
+      return;
+    } catch (e) {
+      if (e.name === "AbortError") return;   // la persona ha chiuso il menu: va bene così
+      // qualunque altro problema: si ripiega sul nostro foglio
+    }
+  }
+  document.getElementById("foglio-condividi").showModal();
 }
 
 async function copiaLink() {
