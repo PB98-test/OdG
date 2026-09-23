@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 # Legge le variabili dal file .env (SECRET_KEY, chiave di gestione) e le mette
 # in os.environ. Va fatto prima di tutto il resto. Il percorso è indicato per
 # esteso perché su PythonAnywhere l'app viene avviata da un'altra cartella.
-load_dotenv(Path(__file__).parent / ".env")
+# override=True: i valori del file vincono sempre. Senza, al riavvio PythonAnywhere
+# si portava dietro le chiavi già caricate e ignorava quelle nuove del file.
+load_dotenv(Path(__file__).parent / ".env", override=True)
 
 from flask import (Flask, Response, abort, redirect, render_template,  # noqa: E402
                    send_file, session, url_for)
