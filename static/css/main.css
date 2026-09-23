@@ -1,0 +1,225 @@
+/* Stili di OdG: colori, cornice, intestazione, elenchi, finestre a comparsa. */
+:root {
+  --blu: #114D8A;
+  --blu-scuro: #0B3A6B;
+  --blu-chiaro: #E8EEF6;
+  --giallo: #F9B922;
+  --giallo-chiaro: #FEF3D6;
+  --giallo-testo: #6B4A00;     /* testo leggibile sopra il giallo chiaro */
+  --sfondo: #F4F6FA;
+  --bianco: #fff;
+  --bordo: #E1E5EC;
+  --testo: #1B2230;
+  --testo-tenue: #5B6576;
+  --testo-debole: #8A93A3;
+  --rosso: #B42318;
+  --font-testo: "Jost", -apple-system, "Segoe UI", sans-serif;
+  --font-titoli: "Antonio", "Jost", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font-testo); background: #E9EDF3; color: var(--testo); font-size: 16px; }
+
+/* #app è la "cornice telefono", ancorata allo schermo con position:fixed come in
+   Presenze (100dvh su alcuni Android non si aggiorna bene scorrendo). A scorrere
+   è solo #content, al suo interno. Su computer resta una colonna larga 520px. */
+#app {
+  position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 520px;
+  display: flex; flex-direction: column; background: var(--sfondo);
+}
+#content { flex: 1; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
+
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+/* Icone: <svg class="ic"><use href=".../icone.svg#nome"></use></svg> */
+.ic { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex-shrink: 0; }
+
+/* ---- Intestazione blu ---- */
+.testata {
+  background: var(--blu); color: var(--bianco);
+  padding: calc(12px + env(safe-area-inset-top)) 16px 18px;
+  flex-shrink: 0;
+}
+.testata-barra { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.testata-barra .spazio { flex: 1; }
+.marchio { display: flex; align-items: center; gap: 10px; }
+.marchio img { width: 40px; height: 40px; display: block; }
+.marchio .nome { font-family: var(--font-titoli); font-weight: 700; font-size: 26px; line-height: 1; }
+.marchio .ente { font-size: 12px; color: #C9D8EA; line-height: 1.2; }
+.indietro {
+  display: flex; align-items: center; gap: 4px; font-size: 14px; color: #DCE6F2;
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.indietro .ic { width: 20px; height: 20px; }
+.logo-piccolo { width: 34px; height: 34px; display: block; flex-shrink: 0; }
+.testata .sopra { font-size: 13px; color: var(--giallo); font-weight: 500; letter-spacing: .3px; margin-top: 12px; }
+.testata h1 {
+  font-family: var(--font-titoli); font-weight: 700; font-size: 30px; line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.testata .dettagli { margin-top: 8px; font-size: 15px; color: #DCE6F2; display: flex; flex-direction: column; gap: 3px; }
+.testata .dettagli a { text-decoration: underline; text-underline-offset: 2px; }
+.btn-testata {
+  background: rgba(255,255,255,.12); color: var(--bianco); border: 1px solid rgba(255,255,255,.3);
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+
+/* ---- Contenuto ---- */
+.pagina { padding: 16px 14px 32px; }
+.sezione { margin-top: 22px; }
+.sezione:first-child { margin-top: 0; }
+.titolo-sezione {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px;
+}
+.titolo-sezione h2 { font-family: var(--font-titoli); font-weight: 700; font-size: 22px; color: var(--blu); }
+.titolo-sezione .meta { font-size: 14px; color: var(--testo-tenue); white-space: nowrap; }
+
+.azioni { display: flex; gap: 8px; }
+.azioni > * { flex: 1; }
+.btn {
+  border: 1px solid var(--bordo); background: var(--bianco); color: var(--testo);
+  border-radius: 10px; padding: 10px 14px; font-size: 15px; font-weight: 500;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-giallo { background: var(--giallo); border-color: var(--giallo); color: #3A2A00; }
+.btn-blu { background: var(--blu); border-color: var(--blu); color: var(--bianco); }
+.btn-contorno { border-color: var(--blu); color: var(--blu); }
+.btn-tenue { background: #EEF1F5; border-color: #EEF1F5; }
+.btn-pericolo { color: var(--rosso); border-color: #F3C9C5; }
+.btn-largo { width: 100%; }
+.btn-piccolo { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+
+.scheda { background: var(--bianco); border: 1px solid var(--bordo); border-radius: 12px; }
+.vuoto { padding: 26px 16px; text-align: center; color: var(--testo-tenue); font-size: 15px; line-height: 1.5; }
+
+.avviso {
+  background: var(--giallo-chiaro); color: var(--giallo-testo); border-radius: 10px;
+  padding: 10px 12px; font-size: 15px; line-height: 1.45; display: flex; gap: 8px;
+  white-space: pre-line;
+}
+.avviso .ic { margin-top: 3px; }
+.etichetta {
+  display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 9px; border-radius: 99px;
+  background: var(--blu-scuro); color: #DCE6F2; vertical-align: middle;
+}
+
+/* ---- Punti dell'ordine del giorno ---- */
+.punti { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.punto {
+  display: flex; align-items: center; gap: 10px; padding: 11px 12px;
+  background: var(--bianco); border: 1px solid var(--bordo); border-radius: 10px;
+}
+.punto .num {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--blu-chiaro); color: var(--blu);
+  font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.punto .titolo { flex: 1; min-width: 0; font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+.pillola {
+  font-size: 13px; padding: 2px 9px; border-radius: 99px; background: var(--giallo-chiaro);
+  color: var(--giallo-testo); white-space: nowrap;
+}
+.comandi-punto { display: flex; gap: 2px; flex-basis: 100%; justify-content: flex-end; margin-top: -2px; }
+.punto.gestibile { flex-wrap: wrap; }
+.btn-icona {
+  background: none; border: none; color: var(--testo-tenue); padding: 6px; border-radius: 8px;
+  display: flex; align-items: center;
+}
+.btn-icona:hover { background: var(--sfondo); }
+.btn-icona .ic { width: 19px; height: 19px; }
+.btn-icona.pericolo { color: var(--rosso); }
+.nuovo-punto { display: flex; gap: 6px; margin-top: 10px; }
+.nuovo-punto input[type=text] { flex: 1; min-width: 0; }
+.nuovo-punto select { width: 92px; }
+
+/* ---- Campi dei moduli ---- */
+.campo, .nuovo-punto input, .nuovo-punto select {
+  background: var(--bianco); border: 1px solid #D5DBE5; border-radius: 8px;
+  height: 42px; padding: 0 10px; font-size: 16px;   /* 16px: sotto, iPhone ingrandisce la pagina */
+}
+
+/* ---- Elenchi di riunioni e tipi ---- */
+.elenco { display: flex; flex-direction: column; gap: 8px; }
+.voce {
+  display: flex; align-items: center; gap: 12px; padding: 12px;
+  background: var(--bianco); border: 1px solid var(--bordo); border-radius: 12px;
+}
+.voce .corpo { flex: 1; min-width: 0; }
+.voce .principale { font-size: 17px; font-weight: 500; line-height: 1.25; }
+.voce .secondaria { font-size: 14px; color: var(--testo-tenue); margin-top: 2px; }
+.voce .freccia { color: var(--testo-debole); }
+.giorno {
+  width: 52px; flex-shrink: 0; text-align: center; border-radius: 10px; padding: 5px 0 6px;
+  background: var(--blu); color: var(--bianco);
+}
+.giorno .n { font-family: var(--font-titoli); font-weight: 700; font-size: 24px; line-height: 1.05; }
+.giorno .m { font-size: 12px; text-transform: lowercase; color: #DCE6F2; }
+.voce.passata .giorno { background: var(--blu-chiaro); color: var(--blu); }
+.voce.passata .giorno .m { color: var(--blu); }
+.voce-tipo .principale { font-family: var(--font-titoli); font-weight: 700; font-size: 21px; color: var(--blu); }
+.voce-tipo .sotto { font-size: 13px; color: var(--testo-tenue); }
+.prossima { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-top: 4px; color: var(--testo); }
+.prossima .ic { color: var(--blu); }
+
+.collegamento {
+  display: flex; align-items: center; gap: 10px; padding: 12px; margin-top: 10px;
+  background: var(--bianco); border: 1px solid var(--bordo); border-radius: 12px; font-size: 15px;
+}
+.collegamento .corpo { flex: 1; }
+.collegamento .ic { color: var(--blu); }
+
+.barra-gestione {
+  margin-top: 28px; padding-top: 12px; border-top: 1px dashed var(--bordo);
+  font-size: 13px; color: var(--testo-tenue); display: flex; justify-content: space-between; align-items: center;
+}
+.barra-gestione a { color: var(--blu); font-weight: 500; }
+
+/* ---- Finestre a comparsa ---- */
+dialog {
+  border: none; border-radius: 14px; padding: 18px; width: min(400px, 92vw);
+  margin: auto; color: var(--testo); background: var(--bianco);
+}
+dialog::backdrop { background: rgba(10, 25, 45, .45); }
+dialog h2 { font-family: var(--font-titoli); font-weight: 700; font-size: 22px; color: var(--blu); margin-bottom: 12px; }
+dialog label { display: block; font-size: 13px; color: var(--testo-tenue); margin-bottom: 10px; }
+dialog label .campo, dialog label textarea { display: block; width: 100%; margin-top: 3px; }
+dialog textarea {
+  border: 1px solid #D5DBE5; border-radius: 8px; padding: 8px 10px; font-size: 16px;
+  min-height: 70px; resize: vertical;
+}
+.riga-campi { display: flex; gap: 10px; }
+.riga-campi > label { flex: 1; min-width: 0; }
+.dlg-azioni { display: flex; gap: 8px; margin-top: 14px; }
+.dlg-azioni .spazio { flex: 1; }
+.errore-form { color: var(--rosso); font-size: 14px; min-height: 0; margin-top: 4px; }
+.errore-form:empty { display: none; }
+
+/* "Foglio" che sale dal basso (Salva la data, Condividi) */
+dialog.foglio {
+  margin: auto auto 0; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0;
+  padding: 16px 14px calc(16px + env(safe-area-inset-bottom));
+}
+.opzione {
+  display: flex; align-items: center; gap: 12px; padding: 12px; width: 100%; text-align: left;
+  background: var(--bianco); border: 1px solid var(--bordo); border-radius: 12px; margin-bottom: 8px;
+}
+.opzione .quadro {
+  width: 40px; height: 40px; border-radius: 10px; background: var(--blu-chiaro); color: var(--blu);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.opzione .quadro .ic { width: 22px; height: 22px; }
+.opzione .corpo { flex: 1; }
+.opzione .principale { display: block; font-size: 16px; font-weight: 500; }
+.opzione .secondaria { font-size: 13px; color: var(--testo-tenue); }
+
+/* ---- Avviso a comparsa ---- */
+#toast {
+  display: none; position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); left: 50%;
+  transform: translateX(-50%); background: var(--testo); color: var(--bianco);
+  padding: 9px 18px; border-radius: 20px; font-size: 14px; font-weight: 500;
+  max-width: 90%; text-align: center; z-index: 100;
+}

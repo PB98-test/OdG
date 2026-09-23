@@ -1,0 +1,26 @@
+{# Piccoli "mattoncini" riusati nelle pagine. Si importano con:
+   {% from "_macro.html" import ic %} #}
+
+{# Icona dal file static/img/icone.svg (icone Tabler, servite dall'app) #}
+{% macro ic(nome) -%}
+<svg class="ic" aria-hidden="true"><use href="{{ url_for('static', filename='img/icone.svg') }}#{{ nome }}"></use></svg>
+{%- endmacro %}
+
+{# Riquadro blu con giorno e mese, usato negli elenchi di riunioni #}
+{% macro giorno(iso) -%}
+{%- set parti = iso.split('-') -%}
+{%- set mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'] -%}
+<div class="giorno"><div class="n">{{ parti[2]|int }}</div><div class="m">{{ mesi[parti[1]|int - 1] }}</div></div>
+{%- endmacro %}
+
+{# Una riunione in un elenco (pagina del tipo) #}
+{% macro voce_riunione(r, passata=False) -%}
+<a class="voce{{ ' passata' if passata }}" href="{{ url_for('pagina_riunione', codice=r.codice) }}">
+  {{ giorno(r.data) }}
+  <div class="corpo">
+    <div class="principale">{{ data_estesa(r.data, con_anno=passata)|capitalize }}</div>
+    <div class="secondaria">ore {{ r.ora_inizio }}{% if r.luogo %} · {{ r.luogo }}{% elif r.link_online %} · online{% endif %}</div>
+  </div>
+  <span class="freccia">{{ ic('chevron-right') }}</span>
+</a>
+{%- endmacro %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macro.html" import ic, voce_riunione %}
+
+{% block title %}{{ tipo.nome }} · OdG{% endblock %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <a class="indietro" href="{{ url_for('home') }}">{{ ic('chevron-left') }} Tutte le riunioni</a>
+    <span class="spazio"></span>
+    {% if gestione %}
+    <button class="btn-testata" onclick="apriDialogTipo(TIPO)">{{ ic('pencil') }} Modifica</button>
+    {% endif %}
+    <img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+  </div>
+  <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>
+  <h1>{{ tipo.nome }}</h1>
+  {% if tipo.luogo_abituale or tipo.ora_abituale %}
+  <div class="dettagli">
+    {% if tipo.ora_abituale %}<span>{{ ic('clock') }} Di solito alle {{ tipo.ora_abituale }}</span>{% endif %}
+    {% if tipo.luogo_abituale %}<span>{{ ic('map-pin') }} {{ tipo.luogo_abituale }}</span>{% endif %}
+  </div>
+  {% endif %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>Prossime riunioni</h2></div>
+    {% if prossime %}
+    <div class="elenco">{% for r in prossime %}{{ voce_riunione(r) }}{% endfor %}</div>
+    {% else %}
+    <div class="scheda vuoto">Nessuna riunione in programma.</div>
+    {% endif %}
+    {% if gestione %}
+    <button class="btn btn-giallo btn-largo" style="margin-top: 12px" onclick="apriDialogRiunione({tipo: TIPO})">
+      {{ ic('calendar-plus') }} Fissa una riunione
+    </button>
+    {% endif %}
+  </section>
+
+  {% if passate %}
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>Archivio</h2><span class="meta">{{ passate|length }}</span></div>
+    <div class="elenco">{% for r in passate %}{{ voce_riunione(r, passata=True) }}{% endfor %}</div>
+  </section>
+  {% endif %}
+
+  {% if gestione %}
+  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
+  {% endif %}
+</div>
+
+{% if gestione %}
+{% include "_dialog_tipo.html" %}
+{% include "_dialog_riunione.html" %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if gestione %}
+<script>const TIPO = {{ tipo_dati|tojson }};</script>
+<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>
+{% endif %}
+{% endblock %}

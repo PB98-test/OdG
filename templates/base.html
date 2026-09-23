@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport: dice al telefono di usare la sua larghezza reale (senza, mostrerebbe
+       una pagina "da desktop" rimpicciolita). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Niente motori di ricerca (lo ripete anche l'intestazione X-Robots-Tag del server) -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#114D8A">
+  <title>{% block title %}OdG · AC Ravenna-Cervia{% endblock %}</title>
+  {% block anteprima %}{% endblock %}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+  <div id="app">
+    {% block testata %}{% endblock %}
+    <main id="content">{% block content %}{% endblock %}</main>
+  </div>
+  <div id="toast" role="status"></div>
+
+  <script>
+    // Indirizzo del file delle icone, per le icone disegnate dal JavaScript
+    const ICONE = "{{ url_for('static', filename='img/icone.svg') }}";
+  </script>
+  <script src="{{ url_for('static', filename='js/comune.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

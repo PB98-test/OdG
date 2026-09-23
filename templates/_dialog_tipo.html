@@ -1,0 +1,32 @@
+{# Finestra per creare o modificare un tipo di riunione (solo gestione) #}
+<dialog id="dlg-tipo">
+  <form method="dialog" onsubmit="salvaTipo(event)">
+    <h2 id="dlg-tipo-titolo">Nuovo tipo di riunione</h2>
+    <label>Nome
+      <input class="campo" name="nome" maxlength="80" required placeholder="Équipe Giovani">
+    </label>
+    <label>Sottotitolo (facoltativo)
+      <input class="campo" name="sottotitolo" maxlength="80" placeholder="Settore Giovani">
+    </label>
+    <label>Luogo abituale
+      <input class="campo" name="luogo_abituale" placeholder="Centro diocesano, sala Paolo VI">
+    </label>
+    <div class="riga-campi">
+      <label>Orario abituale
+        <input class="campo" name="ora_abituale" type="time" value="21:00">
+      </label>
+      <label>Durata (minuti)
+        <input class="campo" name="durata_abituale" type="number" min="1" max="600" value="90">
+      </label>
+    </div>
+    <label id="riga-archivia" style="display: none; margin-top: 4px">
+      <input type="checkbox" name="archiviato"> Archivia (non compare più in Home)
+    </label>
+    <div class="errore-form" id="dlg-tipo-errore"></div>
+    <div class="dlg-azioni">
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+      <button type="submit" class="btn btn-blu">Salva</button>
+    </div>
+  </form>
+</dialog>

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% from "_macro.html" import ic %}
+
+{% block title %}{{ anteprima_titolo }} · OdG{% endblock %}
+
+{# Tag "Open Graph": è quello che WhatsApp (e Telegram, Facebook...) legge per
+   costruire l'anteprima del link. Devono stare nella pagina così come arriva dal
+   server: il lettore di WhatsApp non esegue JavaScript. #}
+{% block anteprima %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OdG · AC Ravenna-Cervia">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:url" content="{{ url }}">
+  <meta property="og:title" content="{{ anteprima_titolo }}">
+  <meta property="og:description" content="{{ anteprima_testo }}">
+  <meta property="og:image" content="{{ anteprima_img }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ tipo.nome }}, {{ data_estesa(riunione.data) }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="description" content="{{ anteprima_testo }}">
+{% endblock %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <a class="indietro" href="{{ url_for('pagina_tipo', codice=tipo.codice) }}">{{ ic('chevron-left') }} {{ tipo.nome }}</a>
+    <span class="spazio"></span>
+    {% if gestione %}
+    <button class="btn-testata" onclick="apriDialogRiunione({tipo: DATI.tipo, riunione: DATI.riunione})">{{ ic('pencil') }} Modifica</button>
+    {% endif %}
+    <img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+  </div>
+  <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>
+  <h1>{{ tipo.nome }} {% if passata %}<span class="etichetta">Passata</span>{% endif %}</h1>
+  <div class="dettagli">
+    <span>{{ ic('calendar') }} {{ data_estesa(riunione.data, con_anno=passata)|capitalize }} · {{ riunione.ora_inizio }}{% if riunione.ora_fine %} - {{ riunione.ora_fine }}{% endif %}</span>
+    {% if riunione.luogo %}<span>{{ ic('map-pin') }} {{ riunione.luogo }}</span>{% endif %}
+    {% if riunione.link_online %}<span>{{ ic('video') }} <a href="{{ riunione.link_online }}" target="_blank" rel="noopener">Collegati online</a></span>{% endif %}
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  {% if not passata %}
+  <div class="azioni">
+    <button class="btn btn-giallo" onclick="document.getElementById('foglio-data').showModal()">{{ ic('calendar-plus') }} Salva la data</button>
+    <button class="btn btn-contorno" onclick="document.getElementById('foglio-condividi').showModal()">{{ ic('share') }} Condividi</button>
+  </div>
+  {% endif %}
+
+  {% if riunione.note %}
+  <div class="avviso" style="margin-top: 14px">{{ ic('notes') }}<span>{{ riunione.note }}</span></div>
+  {% endif %}
+
+  <section class="sezione">
+    <div class="titolo-sezione">
+      <h2>Ordine del giorno</h2>
+      <span class="meta" id="totale-minuti">{% if minuti %}{{ minuti }} min previsti{% endif %}</span>
+    </div>
+    {# Per chi legge, l'elenco arriva già pronto dal server. In gestione lo ridisegna
+       il JavaScript (riunione.js), aggiungendo i comandi per modificarlo. #}
+    <ol class="punti" id="punti">
+      {% for p in punti %}
+      <li class="punto"><span class="num">{{ loop.index }}</span><span class="titolo">{{ p.titolo }}</span><span class="pillola">{{ p.minuti }} min</span></li>
+      {% else %}
+      <li class="scheda vuoto">L'ordine del giorno non è ancora stato scritto.</li>
+      {% endfor %}
+    </ol>
+    {% if gestione %}
+    <form class="nuovo-punto" onsubmit="aggiungiPunto(event)">
+      <input type="text" name="titolo" maxlength="200" placeholder="Nuovo punto" aria-label="Titolo del nuovo punto">
+      <select name="minuti" aria-label="Minuti previsti">
+        {% for m in [5, 10, 15, 20, 25, 30, 45, 60] %}<option value="{{ m }}" {{ 'selected' if m == 10 }}>{{ m }} min</option>{% endfor %}
+      </select>
+      <button class="btn btn-blu" aria-label="Aggiungi">{{ ic('plus') }}</button>
+    </form>
+    <div class="errore-form" id="errore-punto"></div>
+    {% endif %}
+  </section>
+
+  <section class="sezione">
+    {% if successiva %}
+    <a class="collegamento" href="{{ url_for('pagina_riunione', codice=successiva.codice) }}">
+      {{ ic('calendar-event') }}
+      <span class="corpo">Riunione successiva: <b style="font-weight: 500">{{ data_estesa(successiva.data) }}</b></span>
+      {{ ic('chevron-right') }}
+    </a>
+    {% elif gestione %}
+    <button class="btn btn-giallo btn-largo" onclick="apriDialogRiunione({tipo: DATI.tipo, dopo: DATI.riunione})">
+      {{ ic('calendar-plus') }} Fissa la prossima riunione
+    </button>
+    {% endif %}
+    <a class="collegamento" href="{{ url_for('pagina_tipo', codice=tipo.codice) }}">
+      {{ ic('archive') }}<span class="corpo">Tutte le riunioni di {{ tipo.nome }}</span>{{ ic('chevron-right') }}
+    </a>
+  </section>
+
+  {% if gestione %}
+  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
+  {% endif %}
+</div>
+
+{# ---- Foglio "Salva la data" ---- #}
+<dialog class="foglio" id="foglio-data">
+  <h2>Salva la data</h2>
+  <a class="opzione" href="{{ link_google }}" target="_blank" rel="noopener">
+    <span class="quadro">{{ ic('brand-google') }}</span>
+    <span class="corpo"><span class="principale">Google Calendar</span><span class="secondaria">Si apre già compilato: basta salvare</span></span>
+  </a>
+  <a class="opzione" href="{{ url_for('ics_riunione', codice=riunione.codice) }}">
+    <span class="quadro">{{ ic('device-mobile') }}</span>
+    <span class="corpo"><span class="principale">Calendario del telefono</span><span class="secondaria">iPhone, Android, Outlook</span></span>
+  </a>
+  <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
+</dialog>
+
+{# ---- Foglio "Condividi" ---- #}
+<dialog class="foglio" id="foglio-condividi">
+  <h2>Condividi</h2>
+  <a class="opzione" id="condividi-whatsapp" href="#" target="_blank" rel="noopener">
+    <span class="quadro">{{ ic('brand-whatsapp') }}</span>
+    <span class="corpo"><span class="principale">WhatsApp</span><span class="secondaria">Scegli tu la chat o il gruppo</span></span>
+  </a>
+  <button class="opzione" id="condividi-altro" style="display: none" onclick="condividiAltro()">
+    <span class="quadro">{{ ic('share') }}</span>
+    <span class="corpo"><span class="principale">Altre app</span><span class="secondaria">Telegram, email, messaggi...</span></span>
+  </button>
+  <button class="opzione" onclick="copiaLink()">
+    <span class="quadro">{{ ic('copy') }}</span>
+    <span class="corpo"><span class="principale">Copia il link</span><span class="secondaria">Da incollare dove vuoi</span></span>
+  </button>
+  <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
+</dialog>
+
+{% if gestione %}{% include "_dialog_riunione.html" %}{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>const DATI = {{ dati|tojson }};</script>
+<script src="{{ url_for('static', filename='js/riunione.js') }}"></script>
+{% if gestione %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
+{% endblock %}

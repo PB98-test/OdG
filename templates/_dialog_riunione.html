@@ -1,0 +1,34 @@
+{# Finestra per fissare o modificare una riunione (solo gestione) #}
+<dialog id="dlg-riunione">
+  <form method="dialog" onsubmit="salvaRiunione(event)">
+    <h2 id="dlg-riunione-titolo">Nuova riunione</h2>
+    <label>Data
+      <input class="campo" name="data" type="date" required>
+    </label>
+    <div class="riga-campi">
+      <label>Inizio
+        <input class="campo" name="ora_inizio" type="time" required>
+      </label>
+      <label>Fine (facoltativa)
+        <input class="campo" name="ora_fine" type="time">
+      </label>
+    </div>
+    <label>Luogo
+      <input class="campo" name="luogo" placeholder="Centro diocesano, sala Paolo VI">
+    </label>
+    <label>Link per collegarsi (facoltativo)
+      <input class="campo" name="link_online" type="url" placeholder="https://meet.google.com/...">
+    </label>
+    <label>Note (facoltative)
+      <textarea name="note" maxlength="1000" placeholder="Portare il bilancio stampato"></textarea>
+    </label>
+    <div class="errore-form" id="dlg-riunione-errore"></div>
+    <div class="dlg-azioni">
+      <button type="button" class="btn btn-pericolo" id="btn-elimina-riunione" style="display: none"
+              onclick="eliminaRiunione()">Elimina</button>
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+      <button type="submit" class="btn btn-blu">Salva</button>
+    </div>
+  </form>
+</dialog>

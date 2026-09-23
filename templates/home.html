@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macro.html" import ic %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <div class="marchio">
+      <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+      <div>
+        <div class="nome">OdG</div>
+        <div class="ente">Azione Cattolica Ravenna-Cervia</div>
+      </div>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>Riunioni</h2></div>
+    {% if tipi %}
+    <div class="elenco">
+      {% for t in tipi %}
+      {% set p = prossime[t.id] %}
+      <a class="voce voce-tipo" href="{{ url_for('pagina_tipo', codice=t.codice) }}">
+        <div class="corpo">
+          {% if t.sottotitolo %}<div class="sotto">{{ t.sottotitolo }}</div>{% endif %}
+          <div class="principale">{{ t.nome }}</div>
+          <div class="prossima">
+            {{ ic('calendar') }}
+            {% if p %}{{ data_estesa(p.data)|capitalize }}, ore {{ p.ora_inizio }}
+            {% else %}<span style="color: var(--testo-tenue)">Nessuna riunione in programma</span>{% endif %}
+          </div>
+        </div>
+        <span class="freccia">{{ ic('chevron-right') }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="scheda vuoto">
+      {% if gestione %}Crea il primo tipo di riunione, per esempio "Équipe Giovani" o "Consiglio diocesano".
+      {% else %}Qui compariranno le riunioni dell'Azione Cattolica di Ravenna-Cervia.{% endif %}
+    </div>
+    {% endif %}
+
+    {% if gestione %}
+    <button class="btn btn-giallo btn-largo" style="margin-top: 12px" onclick="apriDialogTipo()">
+      {{ ic('plus') }} Nuovo tipo di riunione
+    </button>
+    {% endif %}
+  </section>
+
+  {% if gestione %}
+  <div class="barra-gestione"><span>Sei in modalità gestione</span><a href="{{ url_for('esci') }}">Esci</a></div>
+  {% endif %}
+</div>
+
+{% if gestione %}{% include "_dialog_tipo.html" %}{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if gestione %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
+{% endblock %}

@@ -1,0 +1,269 @@
+"""Route API (restituiscono JSON): tutte le azioni di gestione.
+
+Un Blueprint è un "gruppo di route" che si registra in app.py: tiene
+app.py corto e tutte le API nello stesso posto, con prefisso /api.
+Per ora ogni azione richiede di essere entrati in gestione (/entra/<chiave>);
+nella tappa 3 questo controllo diventerà quello su persone e ruoli.
+"""
+import re
+from datetime import datetime
+from functools import wraps
+
+from flask import Blueprint, jsonify, request, session
+
+from database import get_db, nuovo_codice
+
+bp = Blueprint("api", __name__, url_prefix="/api")
+
+RE_ORA = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+def errore(messaggio, codice=400):
+    return jsonify(errore=messaggio), codice
+
+
+def solo_gestione(funzione):
+    """Decoratore: blocca l'azione se il browser non è entrato in gestione."""
+    @wraps(funzione)
+    def controllata(*args, **kwargs):
+        if not session.get("gestione"):
+            return errore("Solo chi gestisce può fare questa modifica", 403)
+        return funzione(*args, **kwargs)
+    return controllata
+
+
+def testo(dati, campo, obbligatorio=False, massimo=200):
+    """Legge un campo di testo ripulito dagli spazi. None se vuoto."""
+    valore = str(dati.get(campo) or "").strip()[:massimo]
+    if obbligatorio and not valore:
+        raise ValueError(f"Il campo «{campo.replace('_', ' ')}» è obbligatorio")
+    return valore or None
+
+
+def ora(dati, campo, obbligatorio=False):
+    valore = testo(dati, campo, obbligatorio)
+    if valore and not RE_ORA.match(valore):
+        raise ValueError("Orario non valido (formato 21:00)")
+    return valore
+
+
+def data(dati, campo):
+    valore = testo(dati, campo, obbligatorio=True)
+    try:
+        datetime.strptime(valore, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Data non valida") from None
+    return valore
+
+
+def minuti(dati, campo, predefinito):
+    try:
+        valore = int(dati.get(campo) or predefinito)
+    except (TypeError, ValueError):
+        raise ValueError("I minuti devono essere un numero") from None
+    if not 1 <= valore <= 600:
+        raise ValueError("I minuti devono essere tra 1 e 600")
+    return valore
+
+
+def toccata(db, riunione_id):
+    """Segna che la riunione è cambiata (serve per rinnovare l'immagine di anteprima)."""
+    db.execute("UPDATE riunioni SET modificata_il=datetime('now') WHERE id=?", (riunione_id,))
+
+
+# ---------------------------------------------------------------- tipi di riunione
+
+def campi_tipo(dati):
+    return {
+        "nome": testo(dati, "nome", obbligatorio=True, massimo=80),
+        "sottotitolo": testo(dati, "sottotitolo", massimo=80),
+        "luogo_abituale": testo(dati, "luogo_abituale"),
+        "ora_abituale": ora(dati, "ora_abituale"),
+        "durata_abituale": minuti(dati, "durata_abituale", 90),
+    }
+
+
+@bp.post("/tipi")
+@solo_gestione
+def crea_tipo():
+    try:
+        campi = campi_tipo(request.get_json(silent=True) or {})
+    except ValueError as e:
+        return errore(str(e))
+    db = get_db()
+    campi["codice"] = nuovo_codice(db, "tipi_riunione")
+    db.execute(f"INSERT INTO tipi_riunione ({', '.join(campi)}) VALUES ({', '.join('?' * len(campi))})",
+               tuple(campi.values()))
+    db.commit()
+    return {"codice": campi["codice"]}, 201
+
+
+@bp.patch("/tipi/<int:tipo_id>")
+@solo_gestione
+def modifica_tipo(tipo_id):
+    dati = request.get_json(silent=True) or {}
+    try:
+        campi = campi_tipo(dati)
+    except ValueError as e:
+        return errore(str(e))
+    campi["archiviato"] = 1 if dati.get("archiviato") else 0
+    db = get_db()
+    db.execute(f"UPDATE tipi_riunione SET {', '.join(f'{c}=?' for c in campi)} WHERE id=?",
+               (*campi.values(), tipo_id))
+    # Il nome del tipo compare nell'immagine di anteprima: vanno rinnovate tutte
+    db.execute("UPDATE riunioni SET modificata_il=datetime('now') WHERE tipo_id=?", (tipo_id,))
+    db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------- riunioni
+
+def campi_riunione(dati):
+    return {
+        "data": data(dati, "data"),
+        "ora_inizio": ora(dati, "ora_inizio", obbligatorio=True),
+        "ora_fine": ora(dati, "ora_fine"),
+        "luogo": testo(dati, "luogo"),
+        "link_online": testo(dati, "link_online", massimo=500),
+        "note": testo(dati, "note", massimo=1000),
+    }
+
+
+@bp.post("/riunioni")
+@solo_gestione
+def crea_riunione():
+    dati = request.get_json(silent=True) or {}
+    try:
+        campi = campi_riunione(dati)
+    except ValueError as e:
+        return errore(str(e))
+    db = get_db()
+    tipo = db.execute("SELECT id FROM tipi_riunione WHERE id=?", (dati.get("tipo_id"),)).fetchone()
+    if not tipo:
+        return errore("Tipo di riunione non trovato", 404)
+    campi["tipo_id"] = tipo["id"]
+    campi["codice"] = nuovo_codice(db, "riunioni")
+    db.execute(f"INSERT INTO riunioni ({', '.join(campi)}) VALUES ({', '.join('?' * len(campi))})",
+               tuple(campi.values()))
+    db.commit()
+    return {"codice": campi["codice"]}, 201
+
+
+@bp.patch("/riunioni/<int:riunione_id>")
+@solo_gestione
+def modifica_riunione(riunione_id):
+    try:
+        campi = campi_riunione(request.get_json(silent=True) or {})
+    except ValueError as e:
+        return errore(str(e))
+    db = get_db()
+    db.execute(f"UPDATE riunioni SET {', '.join(f'{c}=?' for c in campi)} WHERE id=?",
+               (*campi.values(), riunione_id))
+    toccata(db, riunione_id)
+    db.commit()
+    return {"ok": True}
+
+
+@bp.delete("/riunioni/<int:riunione_id>")
+@solo_gestione
+def elimina_riunione(riunione_id):
+    db = get_db()
+    riga = db.execute("SELECT t.codice FROM riunioni r JOIN tipi_riunione t ON t.id=r.tipo_id WHERE r.id=?",
+                      (riunione_id,)).fetchone()
+    if not riga:
+        return errore("Riunione non trovata", 404)
+    db.execute("DELETE FROM riunioni WHERE id=?", (riunione_id,))   # i punti se ne vanno in cascata
+    db.commit()
+    return {"codice_tipo": riga["codice"]}
+
+
+# ---------------------------------------------------------------- punti dell'OdG
+
+def punti_di(db, riunione_id):
+    righe = db.execute("SELECT * FROM punti WHERE riunione_id=? ORDER BY ordine", (riunione_id,)).fetchall()
+    return [dict(r) for r in righe]
+
+
+@bp.post("/riunioni/<int:riunione_id>/punti")
+@solo_gestione
+def aggiungi_punto(riunione_id):
+    dati = request.get_json(silent=True) or {}
+    try:
+        titolo = testo(dati, "titolo", obbligatorio=True)
+        durata = minuti(dati, "minuti", 10)
+    except ValueError as e:
+        return errore(str(e))
+    db = get_db()
+    if not db.execute("SELECT 1 FROM riunioni WHERE id=?", (riunione_id,)).fetchone():
+        return errore("Riunione non trovata", 404)
+    ultimo = db.execute("SELECT COALESCE(MAX(ordine), 0) FROM punti WHERE riunione_id=?",
+                        (riunione_id,)).fetchone()[0]
+    db.execute("INSERT INTO punti (riunione_id, ordine, titolo, minuti) VALUES (?,?,?,?)",
+               (riunione_id, ultimo + 1, titolo, durata))
+    toccata(db, riunione_id)
+    db.commit()
+    return {"punti": punti_di(db, riunione_id)}, 201
+
+
+@bp.patch("/punti/<int:punto_id>")
+@solo_gestione
+def modifica_punto(punto_id):
+    dati = request.get_json(silent=True) or {}
+    try:
+        titolo = testo(dati, "titolo", obbligatorio=True)
+        durata = minuti(dati, "minuti", 10)
+    except ValueError as e:
+        return errore(str(e))
+    db = get_db()
+    punto = db.execute("SELECT riunione_id FROM punti WHERE id=?", (punto_id,)).fetchone()
+    if not punto:
+        return errore("Punto non trovato", 404)
+    db.execute("UPDATE punti SET titolo=?, minuti=? WHERE id=?", (titolo, durata, punto_id))
+    toccata(db, punto["riunione_id"])
+    db.commit()
+    return {"punti": punti_di(db, punto["riunione_id"])}
+
+
+@bp.delete("/punti/<int:punto_id>")
+@solo_gestione
+def elimina_punto(punto_id):
+    db = get_db()
+    punto = db.execute("SELECT riunione_id FROM punti WHERE id=?", (punto_id,)).fetchone()
+    if not punto:
+        return errore("Punto non trovato", 404)
+    db.execute("DELETE FROM punti WHERE id=?", (punto_id,))
+    rinumera(db, punto["riunione_id"])
+    toccata(db, punto["riunione_id"])
+    db.commit()
+    return {"punti": punti_di(db, punto["riunione_id"])}
+
+
+@bp.post("/punti/<int:punto_id>/sposta")
+@solo_gestione
+def sposta_punto(punto_id):
+    """Sposta un punto di una posizione in su (-1) o in giù (+1)."""
+    direzione = (request.get_json(silent=True) or {}).get("direzione")
+    if direzione not in (-1, 1):
+        return errore("Direzione non valida")
+    db = get_db()
+    punto = db.execute("SELECT * FROM punti WHERE id=?", (punto_id,)).fetchone()
+    if not punto:
+        return errore("Punto non trovato", 404)
+    vicino = db.execute(
+        f"""SELECT * FROM punti WHERE riunione_id=? AND ordine {'<' if direzione < 0 else '>'} ?
+            ORDER BY ordine {'DESC' if direzione < 0 else 'ASC'} LIMIT 1""",
+        (punto["riunione_id"], punto["ordine"]),
+    ).fetchone()
+    if vicino:   # scambia le due posizioni
+        db.execute("UPDATE punti SET ordine=? WHERE id=?", (vicino["ordine"], punto["id"]))
+        db.execute("UPDATE punti SET ordine=? WHERE id=?", (punto["ordine"], vicino["id"]))
+        toccata(db, punto["riunione_id"])
+        db.commit()
+    return {"punti": punti_di(db, punto["riunione_id"])}
+
+
+def rinumera(db, riunione_id):
+    """Dopo un'eliminazione riporta l'ordine a 1, 2, 3... senza buchi."""
+    ids = [r["id"] for r in db.execute("SELECT id FROM punti WHERE riunione_id=? ORDER BY ordine",
+                                       (riunione_id,))]
+    db.executemany("UPDATE punti SET ordine=? WHERE id=?", [(i, pid) for i, pid in enumerate(ids, 1)])
