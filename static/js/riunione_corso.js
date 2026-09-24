@@ -171,7 +171,6 @@ function listaCompiti(compiti, eliminabili) {
 }
 
 let _puntoDelCompito = null;
-let _nomiCaricati = false;
 
 async function apriCompito(puntoId) {
   _puntoDelCompito = puntoId;
@@ -180,26 +179,37 @@ async function apriCompito(puntoId) {
   f.reset();
   document.getElementById("compito-punto").textContent = `Punto: ${DATI.punti.find(p => p.id === puntoId).titolo}`;
   document.getElementById("compito-errore").textContent = "";
-  if (!_nomiCaricati) {
-    const r = await api("GET", "/api/persone/nomi");
-    if (r.ok) {
-      f.persona_id.innerHTML = `<option value="">Nessuno in particolare</option>` +
-        r.data.persone.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join("");
-      _nomiCaricati = true;
-    }
+  // L'elenco si ricarica ogni volta: nel frattempo potrebbero esserci persone nuove
+  const r = await api("GET", "/api/persone/nomi");
+  if (r.ok) {
+    f.persona_id.innerHTML = `<option value="">Nessuno in particolare</option>` +
+      r.data.persone.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join("") +
+      `<option value="nuova">+ Persona nuova…</option>`;
   }
+  sceltaPersonaCompito("");
   dlg.showModal();
+}
+
+/** "+ Persona nuova…": compare il campo per scriverne il nome. */
+function sceltaPersonaCompito(valore) {
+  const riga = document.getElementById("riga-nuova-persona");
+  riga.style.display = valore === "nuova" ? "" : "none";
+  if (valore === "nuova") riga.querySelector("input").focus();
 }
 
 async function salvaCompito(evento) {
   evento.preventDefault();
   const f = evento.target;
-  if (!f.testo.value.trim()) {
-    document.getElementById("compito-errore").textContent = "Scrivi che cosa c'è da fare";
-    return;
+  const errore = document.getElementById("compito-errore");
+  if (!f.testo.value.trim()) { errore.textContent = "Scrivi che cosa c'è da fare"; return; }
+  const corpo = { testo: f.testo.value };
+  if (f.persona_id.value === "nuova") {
+    if (f.nuova_persona.value.trim().length < 2) { errore.textContent = "Scrivi nome e iniziale del cognome"; return; }
+    corpo.nuova_persona = f.nuova_persona.value;   // la persona viene creata come Partecipante
+  } else {
+    corpo.persona_id = Number(f.persona_id.value) || null;
   }
-  const r = await api("POST", `/api/punti/${_puntoDelCompito}/compiti`,
-                      { testo: f.testo.value, persona_id: Number(f.persona_id.value) || null });
+  const r = await api("POST", `/api/punti/${_puntoDelCompito}/compiti`, corpo);
   if (aggiorna(r, "compito-errore")) {
     document.getElementById("dlg-compito").close();
     toast("Compito aggiunto");

@@ -34,6 +34,18 @@ def pulisci_nome(valore):
     return nome
 
 
+def crea_partecipante(db, nome_grezzo):
+    """Crea al volo una persona che non ha mai usato OdG (dai Presenti o dai
+    Compiti), con il ruolo di Partecipante. Al primo accesso la troverà
+    nell'elenco "Sei una di queste persone?". Restituisce (id, nome)."""
+    nome = pulisci_nome(nome_grezzo)          # ValueError se il nome non va bene
+    if db.execute("SELECT 1 FROM persone WHERE nome=? COLLATE NOCASE", (nome,)).fetchone():
+        raise ValueError("Questa persona c'è già: cercala nell'elenco")
+    persona_id = db.execute("INSERT INTO persone (nome, colore, ruolo_id) VALUES (?,?,2)",
+                            (nome, identita.colore_libero(db))).lastrowid
+    return persona_id, nome
+
+
 def link_invito(gettone):
     return url_for("usa_link_invito", gettone=gettone, _external=True)
 

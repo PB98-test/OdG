@@ -10,10 +10,9 @@ Regole principali (decise con Pietro):
 """
 from flask import Blueprint, g, jsonify, request
 
-import identita
 import odg
 from api import campi_riunione, testo
-from api_persone import pulisci_nome
+from api_persone import crea_partecipante
 from database import get_db
 from identita import puo, richiede
 from odg import adesso_utc, ferma_timer, stato, testo_utc
@@ -180,7 +179,12 @@ def aggiungi_compito(punto_id):
     except ValueError:
         return errore("Scrivi che cosa c'è da fare")
     persona_id = dati.get("persona_id") or None
-    if persona_id and not db.execute("SELECT 1 FROM persone WHERE id=?", (persona_id,)).fetchone():
+    if dati.get("nuova_persona"):      # a chi tocca non ha mai usato OdG: la si crea ora
+        try:
+            persona_id, _ = crea_partecipante(db, dati["nuova_persona"])
+        except ValueError as e:
+            return errore(str(e))
+    elif persona_id and not db.execute("SELECT 1 FROM persone WHERE id=?", (persona_id,)).fetchone():
         return errore("Persona non trovata")
     db.execute("INSERT INTO compiti (riunione_id, punto_id, testo, persona_id, creato_da) VALUES (?,?,?,?,?)",
                (p["riunione_id"], punto_id, descrizione, persona_id, g.io["id"]))
@@ -286,13 +290,9 @@ def nuova_persona_presente(riunione_id):
     if problema:
         return problema
     try:
-        nome = pulisci_nome((request.get_json(silent=True) or {}).get("nome"))
+        persona_id, nome = crea_partecipante(db, (request.get_json(silent=True) or {}).get("nome"))
     except ValueError as e:
-        return errore(str(e))
-    if db.execute("SELECT 1 FROM persone WHERE nome=? COLLATE NOCASE", (nome,)).fetchone():
-        return errore("Questa persona c'è già: cercala nell'elenco", 409)
-    persona_id = db.execute("INSERT INTO persone (nome, colore, ruolo_id) VALUES (?,?,2)",
-                            (nome, identita.colore_libero(db))).lastrowid
+        return errore(str(e), 409 if "c'è già" in str(e) else 400)
     db.execute("INSERT INTO presenze (riunione_id, persona_id, segnato_da) VALUES (?,?,?)",
                (riunione_id, persona_id, g.io["id"]))
     db.commit()

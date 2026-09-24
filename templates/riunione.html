@@ -147,7 +147,11 @@
       <input class="campo" name="testo" maxlength="300" placeholder="Descrivi brevemente il compito">
     </label>
     <label>A chi tocca
-      <select class="campo" name="persona_id"><option value="">Nessuno in particolare</option></select>
+      <select class="campo" name="persona_id" onchange="sceltaPersonaCompito(this.value)">
+        <option value="">Nessuno in particolare</option></select>
+    </label>
+    <label id="riga-nuova-persona" style="display: none">Nome della persona nuova
+      <input class="campo" name="nuova_persona" maxlength="30" placeholder="Nome e iniziale del cognome">
     </label>
     <p class="nota">Chi riceve il compito lo ritrova nel suo profilo e in cima alla prossima riunione.</p>
     <div class="errore-form" id="compito-errore"></div>
