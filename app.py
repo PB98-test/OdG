@@ -61,6 +61,18 @@ def niente_motori_di_ricerca(risposta):
     return identita.scrivi_cookie(risposta)
 
 
+@app.url_defaults
+def versione_dei_file_statici(endpoint, valori):
+    """Aggiunge a ogni file statico (JavaScript, stili, icone) un numero di
+    versione: la data della sua ultima modifica, es. riunione.js?v=1758708575.
+    Quando il file cambia cambia anche l'indirizzo, così i telefoni non
+    continuano a usare la vecchia copia tenuta in memoria (cache)."""
+    if endpoint == "static" and "filename" in valori:
+        percorso = Path(app.static_folder) / valori["filename"]
+        if percorso.is_file():
+            valori["v"] = int(percorso.stat().st_mtime)
+
+
 @app.context_processor
 def variabili_comuni():
     """Variabili disponibili in tutti i template."""
