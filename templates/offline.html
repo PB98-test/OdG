@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macro.html" import ic %}
+
+{% block title %}Senza rete · OdG{% endblock %}
+
+{% block testata %}
+<header class="testata">
+  <div class="testata-barra">
+    <div class="marchio">
+      <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">
+      <div><div class="nome">OdG</div><div class="ente">Azione Cattolica Ravenna-Cervia</div></div>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="pagina">
+  <div class="scheda vuoto">
+    Adesso il telefono non è collegato a internet, e questa pagina non l'avevi ancora aperta.<br>
+    Le pagine già viste restano consultabili anche senza rete.
+  </div>
+  <button class="btn btn-blu btn-largo" style="margin-top: 12px" onclick="location.reload()">{{ ic('refresh') }} Riprova</button>
+  <a class="btn btn-tenue btn-largo" style="margin-top: 8px" href="/">Vai a tutte le riunioni</a>
+</div>
+{% endblock %}

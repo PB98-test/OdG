@@ -19,6 +19,9 @@
 
 {% block content %}
 <div class="pagina">
+  {# "Installa OdG sul telefono": lo riempie comune.js solo se si può installare #}
+  <div id="installa" data-chiudibile="1" style="margin-bottom: 14px"></div>
+
   {% if compiti %}
   <section class="sezione">
     <div class="titolo-sezione"><h2>I tuoi compiti</h2><span class="meta">{{ compiti|length }} da fare</span></div>

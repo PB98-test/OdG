@@ -79,7 +79,18 @@ def descrizione(punti, url):
     return "\n".join(righe)
 
 
-def file_ics(riunione, tipo, punti, url):
+# Promemoria che si possono scegliere in "Salva la data": nome -> minuti di anticipo
+AVVISI = {"nessuno": [], "ora": [60], "giorno": [1440], "entrambi": [1440, 60]}
+
+
+def _promemoria(minuti):
+    """Un "allarme" dentro l'evento: il calendario del telefono avvisa
+    'minuti' prima dell'inizio. (Google Calendar lo ignora e usa i suoi.)"""
+    return ["BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Promemoria riunione",
+            f"TRIGGER:-PT{minuti}M", "END:VALARM"]
+
+
+def file_ics(riunione, tipo, punti, url, avviso="nessuno"):
     """Crea il contenuto di un file .ics con un solo evento (la riunione)."""
     inizio, fine = inizio_fine(riunione, tipo["durata_abituale"])
     luogo = riunione["luogo"] or riunione["link_online"] or ""
@@ -100,6 +111,7 @@ def file_ics(riunione, tipo, punti, url):
         f"LOCATION:{_testo_ics(luogo)}",
         f"DESCRIPTION:{_testo_ics(descrizione(punti, url))}",
         f"URL:{url}",
+        *[riga for minuti in AVVISI.get(avviso, []) for riga in _promemoria(minuti)],
         "END:VEVENT",
         "END:VCALENDAR",
     ]

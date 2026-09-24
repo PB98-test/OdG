@@ -91,13 +91,21 @@
 {# ---- Foglio "Salva la data" ---- #}
 <dialog class="foglio" id="foglio-data">
   <h2>Salva la data</h2>
+  {# Il promemoria finisce dentro l'evento del calendario del telefono. Google
+     Calendar non lo legge dal link: usa gli avvisi impostati nel proprio calendario. #}
+  <div class="etichetta-form" style="margin-top: 0">Promemoria</div>
+  <div class="scelta-avviso" role="radiogroup" aria-label="Promemoria">
+    {% for valore, testo in [("nessuno", "Nessuno"), ("ora", "1 ora prima"), ("giorno", "1 giorno prima"), ("entrambi", "Entrambi")] %}
+    <label><input type="radio" name="avviso" value="{{ valore }}" onchange="sceltaAvviso(this.value)"><span>{{ testo }}</span></label>
+    {% endfor %}
+  </div>
+  <a class="opzione" id="link-ics" href="{{ url_for('ics_riunione', codice=riunione.codice) }}">
+    <span class="quadro">{{ ic('device-mobile') }}</span>
+    <span class="corpo"><span class="principale">Calendario del telefono</span><span class="secondaria">iPhone, Android, Outlook: con il promemoria scelto</span></span>
+  </a>
   <a class="opzione" href="{{ link_google }}" target="_blank" rel="noopener">
     <span class="quadro">{{ ic('brand-google') }}</span>
-    <span class="corpo"><span class="principale">Google Calendar</span><span class="secondaria">Si apre già compilato: basta salvare</span></span>
-  </a>
-  <a class="opzione" href="{{ url_for('ics_riunione', codice=riunione.codice) }}">
-    <span class="quadro">{{ ic('device-mobile') }}</span>
-    <span class="corpo"><span class="principale">Calendario del telefono</span><span class="secondaria">iPhone, Android, Outlook</span></span>
+    <span class="corpo"><span class="principale">Google Calendar</span><span class="secondaria">Si apre già compilato; il promemoria è quello del tuo Google Calendar</span></span>
   </a>
   <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
 </dialog>

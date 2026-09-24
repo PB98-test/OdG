@@ -419,6 +419,25 @@ function dataBreve(iso) {
   return `${g} ${MESI[m - 1]}`;
 }
 
+// ------------------------------------------------------------ salva la data
+
+/**
+ * Promemoria scelto in "Salva la data": finisce nell'indirizzo del file .ics
+ * (?avviso=ora...). La scelta si ricorda su questo telefono per la volta dopo.
+ */
+function sceltaAvviso(valore) {
+  const link = document.getElementById("link-ics");
+  link.href = link.href.split("?")[0] + "?avviso=" + valore;
+  try { localStorage.setItem("odg_avviso", valore); } catch (e) { /* memoria non disponibile: pazienza */ }
+}
+
+(function () {
+  let scelto = "giorno";   // di partenza: il giorno prima
+  try { scelto = localStorage.getItem("odg_avviso") || scelto; } catch (e) { /* come sopra */ }
+  const radio = document.querySelector(`#foglio-data input[value="${scelto}"]`);
+  if (radio) { radio.checked = true; sceltaAvviso(scelto); }
+})();
+
 // ------------------------------------------------------------ condivisione
 
 /**

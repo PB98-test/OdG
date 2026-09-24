@@ -20,8 +20,10 @@ async function api(metodo, url, corpo, giaRiprovato = false) {
     });
     data = await risposta.json().catch(() => ({}));
   } catch (e) {
+    segnaOffline(true);
     return { ok: false, status: 0, data: { errore: "Connessione assente: riprova tra poco" } };
   }
+  segnaOffline(false);
   if (risposta.status === 401 && data.chi_sei && !giaRiprovato) {
     if (await chiediNome()) {
       const seconda = await api(metodo, url, corpo, true);
@@ -114,6 +116,74 @@ function annullaNome() {
   if (_risolviNome) _risolviNome(false);
   _risolviNome = null;
 }
+
+// ------------------------------------------------------------ senza rete
+
+/** Mostra o nasconde la striscia "Sei senza rete" in cima alla pagina. */
+function segnaOffline(offline) {
+  document.body.classList.toggle("offline", offline);
+}
+window.addEventListener("offline", () => segnaOffline(true));
+window.addEventListener("online", () => segnaOffline(false));
+if (!navigator.onLine) segnaOffline(true);
+
+// ------------------------------------------------------------ installare l'app
+
+/**
+ * Su Android (Chrome, Edge, Samsung) il browser offre un evento per mostrare
+ * il suo "Installa app": lo teniamo da parte per il nostro pulsante.
+ * Su iPhone non esiste: lì si spiega come fare da Safari.
+ */
+let _richiestaInstallazione = null;
+const giaInstallata = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const suIphone = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  _richiestaInstallazione = e;
+  mostraInstalla();
+});
+
+/** Riempie il riquadro #installa (se la pagina ce l'ha) con il modo giusto per questo telefono. */
+function mostraInstalla() {
+  const box = document.getElementById("installa");
+  if (!box || giaInstallata()) return;
+  try { if (box.dataset.chiudibile && localStorage.getItem("odg_installa_chiuso")) return; } catch (e) { /* niente */ }
+  const chiudi = box.dataset.chiudibile
+    ? `<button class="btn btn-tenue btn-piccolo" onclick="chiudiInstalla()">Non ora</button>` : "";
+  if (_richiestaInstallazione) {
+    box.innerHTML = `<div class="scheda installa">
+      <b>Installa OdG sul telefono</b>
+      <span class="nota" style="margin: 0">Avrai l'icona nella schermata Home, come un'app, e le pagine già viste anche senza rete.</span>
+      <div class="azioni"><button class="btn btn-blu" onclick="installa()">${icona("download")} Installa</button>${chiudi}</div>
+    </div>`;
+  } else if (suIphone()) {
+    box.innerHTML = `<div class="scheda installa">
+      <b>Installa OdG sull'iPhone</b>
+      <ol class="passi">
+        <li>Apri questa pagina con <b>Safari</b></li>
+        <li>Tocca il pulsante <b>Condividi</b> (il quadrato con la freccia in su)</li>
+        <li>Scegli <b>Aggiungi alla schermata Home</b></li>
+      </ol>
+      ${chiudi ? `<div class="azioni">${chiudi}</div>` : ""}
+    </div>`;
+  }
+}
+
+async function installa() {
+  if (!_richiestaInstallazione) return;
+  _richiestaInstallazione.prompt();
+  const { outcome } = await _richiestaInstallazione.userChoice;
+  _richiestaInstallazione = null;
+  if (outcome === "accepted") { document.getElementById("installa").innerHTML = ""; toast("OdG installata"); }
+}
+
+function chiudiInstalla() {
+  try { localStorage.setItem("odg_installa_chiuso", "1"); } catch (e) { /* niente */ }
+  document.getElementById("installa").innerHTML = "";
+}
+
+document.addEventListener("DOMContentLoaded", mostraInstalla);
 
 // ------------------------------------------------------------ i miei compiti
 

@@ -20,6 +20,7 @@
 <body>
   <div id="app">
     {% block testata %}{% endblock %}
+    <div id="banner-offline" role="status">Sei senza rete: vedi l'ultima versione salvata, e per ora non puoi modificare nulla</div>
     <main id="content">{% block content %}{% endblock %}</main>
   </div>
   <div id="toast" role="status"></div>
@@ -30,6 +31,11 @@
     const ICONE = "{{ url_for('static', filename='img/icone.svg') }}";
   </script>
   <script src="{{ url_for('static', filename='js/comune.js') }}"></script>
+  <script>
+    // Installa il "service worker" (vedi static/sw.js): rende l'app più veloce e
+    // le permette di mostrare le pagine già viste anche senza rete.
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

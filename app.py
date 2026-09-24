@@ -164,7 +164,7 @@ def home():
     prossime = {}
     for t in tipi:
         prossime[t["id"]] = db.execute(
-            "SELECT * FROM riunioni WHERE tipo_id=? AND data>=? ORDER BY data, ora_inizio LIMIT 1",
+            "SELECT * FROM riunioni WHERE tipo_id=? AND data>=? AND stato<>'conclusa' ORDER BY data, ora_inizio LIMIT 1",
             (t["id"], oggi()),
         ).fetchone()
     return render_template("home.html", tipi=tipi, prossime=prossime, compiti=miei_compiti())
@@ -177,11 +177,11 @@ def pagina_tipo(codice):
     if not tipo:
         abort(404)
     prossime = db.execute(
-        "SELECT * FROM riunioni WHERE tipo_id=? AND data>=? ORDER BY data, ora_inizio",
+        "SELECT * FROM riunioni WHERE tipo_id=? AND data>=? AND stato<>'conclusa' ORDER BY data, ora_inizio",
         (tipo["id"], oggi()),
     ).fetchall()
     passate = db.execute(
-        "SELECT * FROM riunioni WHERE tipo_id=? AND data<? ORDER BY data DESC, ora_inizio DESC",
+        "SELECT * FROM riunioni WHERE tipo_id=? AND (data<? OR stato='conclusa') ORDER BY data DESC, ora_inizio DESC",
         (tipo["id"], oggi()),
     ).fetchall()
     return render_template("tipo.html", tipo=tipo, prossime=prossime, passate=passate,
@@ -243,13 +243,35 @@ def pagina_riunione(codice):
 def ics_riunione(codice):
     riunione, tipo, punti = carica_riunione(codice)
     url = url_for("pagina_riunione", codice=codice, _external=True)
+    # ?avviso=nessuno|ora|giorno|entrambi: il promemoria scelto in "Salva la data"
+    avviso = request.args.get("avviso", "nessuno")
     return Response(
-        calendario.file_ics(riunione, tipo, punti, url),
+        calendario.file_ics(riunione, tipo, punti, url, avviso if avviso in calendario.AVVISI else "nessuno"),
         mimetype="text/calendar",
         # "inline" (e non "attachment"): su iPhone apre direttamente la schermata
         # "Aggiungi al calendario" invece di scaricare un file da cercare poi.
         headers={"Content-Disposition": f'inline; filename="riunione-{codice}.ics"'},
     )
+
+
+# ---------------------------------------------------------------- app installata
+# Il "service worker" è un piccolo programma che il telefono tiene installato
+# insieme all'app (vedi static/sw.js). Deve essere servito dalla radice del
+# sito (/sw.js e non /static/sw.js), altrimenti controllerebbe solo /static/.
+
+@app.route("/sw.js")
+def service_worker():
+    risposta = send_file(Path(app.static_folder) / "sw.js", mimetype="text/javascript")
+    # Il telefono deve sempre chiedere se ce n'è una versione nuova
+    risposta.headers["Cache-Control"] = "no-cache"
+    return risposta
+
+
+@app.route("/offline")
+def pagina_offline():
+    """Pagina mostrata dall'app installata quando manca la rete e la pagina
+    richiesta non è tra quelle già viste."""
+    return render_template("offline.html")
 
 
 @app.route("/r/<codice>/anteprima.png")
