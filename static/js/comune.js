@@ -115,6 +115,16 @@ function annullaNome() {
   _risolviNome = null;
 }
 
+// ------------------------------------------------------------ i miei compiti
+
+/** Casella "fatto" nell'elenco dei propri compiti (Home e profilo). */
+async function fattoMio(id, fatto) {
+  const r = await api("POST", `/api/compiti/${id}/fatto`, { fatto });
+  if (!r.ok) return toast(r.data.errore || "Non è andata: riprova");
+  toast(fatto ? "Compito fatto" : "Compito di nuovo da fare");
+  setTimeout(() => location.reload(), 600);   // aggiorna il pallino sull'avatar
+}
+
 // ------------------------------------------------------------ link monouso
 
 /** Mostra la finestra con QR code e link (vedi _dialog_link.html). */

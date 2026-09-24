@@ -305,3 +305,90 @@ button.voce { width: 100%; text-align: left; font: inherit; color: inherit; }
 .testa-ruolo .meta { font-size: 13px; color: var(--testo-tenue); white-space: nowrap; }
 .permesso { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 4px 0; cursor: pointer; }
 .permesso input { width: 18px; height: 18px; accent-color: var(--blu); }
+
+/* ======================================================== tappa 4: la riunione */
+
+.etichetta.in-corso { background: var(--giallo); color: #3A2A00; }
+
+/* Pallino con il numero di compiti da fare, sull'avatar */
+.avatar { position: relative; }
+.badge {
+  position: absolute; top: -5px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 99px; background: var(--giallo); color: #3A2A00; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; border: 2px solid var(--blu);
+}
+
+/* Barra in alto: "Inizia" e tempi */
+.barra-inizio { display: flex; align-items: center; gap: 12px; padding: 12px; margin-top: 14px; flex-wrap: wrap; }
+.barra-inizio .corpo { flex: 1; min-width: 160px; font-size: 15px; color: var(--testo-tenue); }
+.barra-tempi { padding: 10px 12px; margin-top: 14px; }
+.righe-tempi { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--testo-tenue); flex-wrap: wrap; }
+.righe-tempi b { color: var(--testo); font-weight: 600; }
+.righe-tempi b#fine-prevista { color: #1D7A55; }
+.righe-tempi b#fine-prevista.sforato { color: var(--rosso); }
+.progresso { height: 6px; background: var(--blu-chiaro); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+.progresso div { height: 100%; width: 0; background: var(--giallo); transition: width .5s; }
+
+/* Punti durante la riunione */
+.punto.in-corso { flex-wrap: wrap; }
+.punto.in-corso .titolo { cursor: pointer; }
+.punto.spuntato .titolo { color: var(--testo-debole); }
+.punto.spuntato .titolo > :first-child, .punto.spuntato .titolo { text-decoration: line-through; }
+.punto.spuntato .firma { text-decoration: none; display: flex; }
+.punto.acceso { border: 1.5px solid var(--giallo); background: #FFFBEF; }
+.spunta {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; border: 2px solid #C5CDD9;
+  background: var(--bianco); color: transparent; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.punto.spuntato .spunta { color: var(--bianco); }
+.spunta .ic { width: 17px; height: 17px; }
+.tempo { font-size: 13px; color: var(--testo-tenue); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tempo.sforato { color: var(--rosso); font-weight: 500; }
+.btn-timer {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; border: none; padding: 0;
+  background: var(--blu-chiaro); color: var(--blu); display: flex; align-items: center; justify-content: center;
+}
+.btn-timer.acceso { background: var(--giallo); }
+.dettagli-punto { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.dettagli-punto .comandi-punto { margin-top: 0; }
+textarea.decisioni {
+  width: 100%; border: 1px solid #D5DBE5; border-radius: 8px; padding: 8px 10px; font-size: 15px;
+  resize: vertical; min-height: 44px; background: var(--bianco);
+}
+.decisioni-testo { font-size: 15px; color: var(--testo-tenue); white-space: pre-line; }
+.decisioni-testo b { font-weight: 500; color: var(--testo); }
+
+/* Compiti */
+.compiti { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.compiti li { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; }
+.compiti input[type=checkbox] { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--blu); flex-shrink: 0; }
+.compiti .corpo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.compiti li.fatto .corpo { text-decoration: line-through; color: var(--testo-debole); }
+.chi-compito { display: inline-flex; align-items: center; font-weight: 500; margin-right: 6px; }
+.compiti.miei .firma { color: var(--blu); }
+.riquadro-compiti { padding: 12px; }
+.link-verbale { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 13px; color: var(--blu); margin-top: 8px; }
+
+/* Le Varie */
+.punto.varie { flex-wrap: wrap; }
+.varie-box { flex-basis: 100%; }
+.voci-varie { list-style: none; display: flex; flex-direction: column; gap: 4px; margin: 2px 0 6px 36px; }
+.voci-varie li { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.voci-varie li::before { content: "·"; color: var(--testo-debole); font-weight: 700; }
+.voci-varie .corpo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.voci-varie .firma { display: inline-flex; margin-left: 6px; }
+.nuova-varia { display: flex; gap: 6px; margin-left: 36px; }
+.nuova-varia input { flex: 1; min-width: 0; height: 38px; font-size: 15px; }
+.nuova-varia .btn { padding: 0 12px; }
+
+.firma.riportato { color: var(--giallo-testo); gap: 3px; }
+.firma.riportato .ic { width: 14px; height: 14px; }
+
+/* Verbale */
+.riepilogo { padding: 10px 12px; font-size: 14px; color: var(--testo-tenue); list-style: none; }
+.punto.verbale { flex-wrap: wrap; align-items: flex-start; }
+.punto.verbale .dettagli-punto:empty { display: none; }
+.punto.non-trattato { color: var(--testo-tenue); }
+.punto.non-trattato .firma a { color: var(--blu); text-decoration: underline; }
+li.titolo-proposte { list-style: none; }
+.elenco-spunte { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }

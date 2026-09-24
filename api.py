@@ -10,9 +10,10 @@ from datetime import datetime
 
 from flask import Blueprint, g, jsonify, request
 
-from calendario import ROMA
+import odg
 from database import get_db, nuovo_codice
 from identita import richiede
+from odg import inserisci_punto, stato, toccata, togli_punto
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -55,11 +56,6 @@ def minuti(dati, campo, predefinito):
     if not 1 <= valore <= 600:
         raise ValueError("I minuti devono essere tra 1 e 600")
     return valore
-
-
-def toccata(db, riunione_id):
-    """Segna che la riunione è cambiata (serve per rinnovare l'immagine di anteprima)."""
-    db.execute("UPDATE riunioni SET modificata_il=datetime('now') WHERE id=?", (riunione_id,))
 
 
 # ---------------------------------------------------------------- tipi di riunione
@@ -132,12 +128,10 @@ def crea_riunione():
     tipo = db.execute("SELECT id FROM tipi_riunione WHERE id=?", (dati.get("tipo_id"),)).fetchone()
     if not tipo:
         return errore("Tipo di riunione non trovato", 404)
-    campi["tipo_id"] = tipo["id"]
-    campi["codice"] = nuovo_codice(db, "riunioni")
-    db.execute(f"INSERT INTO riunioni ({', '.join(campi)}) VALUES ({', '.join('?' * len(campi))})",
-               tuple(campi.values()))
+    # Con le Varie in fondo e gli eventuali punti "in attesa" dalla volta precedente
+    codice = odg.crea_riunione(db, tipo["id"], campi)
     db.commit()
-    return {"codice": campi["codice"]}, 201
+    return {"codice": codice}, 201
 
 
 @bp.patch("/riunioni/<int:riunione_id>")
@@ -170,26 +164,7 @@ def elimina_riunione(riunione_id):
 
 # ---------------------------------------------------------------- stato dell'OdG
 # Dopo ogni azione su punti o proposte il server restituisce lo "stato" completo
-# della riunione (punti + proposte in attesa): la pagina lo ridisegna tutto.
-
-def stato(db, riunione_id):
-    punti = db.execute(
-        """SELECT pu.*, pe.nome AS proposto_da_nome, pe.colore AS proposto_da_colore
-           FROM punti pu LEFT JOIN persone pe ON pe.id = pu.proposto_da
-           WHERE pu.riunione_id=? ORDER BY pu.ordine""",
-        (riunione_id,),
-    ).fetchall()
-    proposte = db.execute(
-        """SELECT pr.id, pr.tipo, pr.punto_id, pr.titolo, pr.minuti, pr.persona_id,
-                  pe.nome AS persona_nome, pe.colore AS persona_colore,
-                  pu.titolo AS punto_titolo, pu.minuti AS punto_minuti
-           FROM proposte pr JOIN persone pe ON pe.id = pr.persona_id
-           LEFT JOIN punti pu ON pu.id = pr.punto_id
-           WHERE pr.riunione_id=? AND pr.stato='in_attesa' ORDER BY pr.creata_il, pr.id""",
-        (riunione_id,),
-    ).fetchall()
-    return {"punti": [dict(p) for p in punti], "proposte": [dict(p) for p in proposte]}
-
+# della riunione (vedi odg.stato): la pagina lo ridisegna tutto.
 
 @bp.get("/riunioni/<int:riunione_id>/stato")
 def leggi_stato(riunione_id):
@@ -208,19 +183,28 @@ def aggiungi_punto(riunione_id):
     except ValueError as e:
         return errore(str(e))
     db = get_db()
-    if not db.execute("SELECT 1 FROM riunioni WHERE id=?", (riunione_id,)).fetchone():
+    riunione = db.execute("SELECT stato FROM riunioni WHERE id=?", (riunione_id,)).fetchone()
+    if not riunione:
         return errore("Riunione non trovata", 404)
+    if riunione["stato"] == "conclusa":
+        return errore(CONCLUSA)
     inserisci_punto(db, riunione_id, titolo, durata)
     db.commit()
     return stato(db, riunione_id), 201
 
 
-def inserisci_punto(db, riunione_id, titolo, durata, proposto_da=None):
-    ultimo = db.execute("SELECT COALESCE(MAX(ordine), 0) FROM punti WHERE riunione_id=?",
-                        (riunione_id,)).fetchone()[0]
-    db.execute("INSERT INTO punti (riunione_id, ordine, titolo, minuti, proposto_da) VALUES (?,?,?,?,?)",
-               (riunione_id, ultimo + 1, titolo, durata, proposto_da))
-    toccata(db, riunione_id)
+CONCLUSA = "La riunione è conclusa: l'ordine del giorno non si modifica più"
+
+
+def punto_modificabile(db, punto_id):
+    """Il punto con lo stato della sua riunione, oppure una risposta d'errore."""
+    punto = db.execute("SELECT p.*, r.stato FROM punti p JOIN riunioni r ON r.id=p.riunione_id WHERE p.id=?",
+                       (punto_id,)).fetchone()
+    if not punto:
+        return None, errore("Punto non trovato", 404)
+    if punto["stato"] == "conclusa":
+        return None, errore(CONCLUSA)
+    return punto, None
 
 
 @bp.patch("/punti/<int:punto_id>")
@@ -233,9 +217,11 @@ def modifica_punto(punto_id):
     except ValueError as e:
         return errore(str(e))
     db = get_db()
-    punto = db.execute("SELECT riunione_id FROM punti WHERE id=?", (punto_id,)).fetchone()
-    if not punto:
-        return errore("Punto non trovato", 404)
+    punto, problema = punto_modificabile(db, punto_id)
+    if problema:
+        return problema
+    if punto["fisso"]:
+        titolo = punto["titolo"]      # delle Varie si cambiano solo i minuti
     db.execute("UPDATE punti SET titolo=?, minuti=? WHERE id=?", (titolo, durata, punto_id))
     toccata(db, punto["riunione_id"])
     db.commit()
@@ -246,19 +232,14 @@ def modifica_punto(punto_id):
 @richiede("odg")
 def elimina_punto(punto_id):
     db = get_db()
-    punto = db.execute("SELECT riunione_id FROM punti WHERE id=?", (punto_id,)).fetchone()
-    if not punto:
-        return errore("Punto non trovato", 404)
+    punto, problema = punto_modificabile(db, punto_id)
+    if problema:
+        return problema
+    if punto["fisso"]:
+        return errore("Le Varie restano sempre nell'ordine del giorno")
     togli_punto(db, punto_id, punto["riunione_id"])
     db.commit()
     return stato(db, punto["riunione_id"])
-
-
-def togli_punto(db, punto_id, riunione_id):
-    # Le proposte in attesa su questo punto spariscono con lui (ON DELETE CASCADE)
-    db.execute("DELETE FROM punti WHERE id=?", (punto_id,))
-    rinumera(db, riunione_id)
-    toccata(db, riunione_id)
 
 
 @bp.post("/punti/<int:punto_id>/sposta")
@@ -269,11 +250,14 @@ def sposta_punto(punto_id):
     if direzione not in (-1, 1):
         return errore("Direzione non valida")
     db = get_db()
-    punto = db.execute("SELECT * FROM punti WHERE id=?", (punto_id,)).fetchone()
-    if not punto:
-        return errore("Punto non trovato", 404)
+    punto, problema = punto_modificabile(db, punto_id)
+    if problema:
+        return problema
+    if punto["fisso"]:
+        return errore("Le Varie restano sempre in fondo")
+    # Le Varie (fisso=1) non si scambiano mai: restano l'ultimo punto
     vicino = db.execute(
-        f"""SELECT * FROM punti WHERE riunione_id=? AND ordine {'<' if direzione < 0 else '>'} ?
+        f"""SELECT * FROM punti WHERE riunione_id=? AND fisso=0 AND ordine {'<' if direzione < 0 else '>'} ?
             ORDER BY ordine {'DESC' if direzione < 0 else 'ASC'} LIMIT 1""",
         (punto["riunione_id"], punto["ordine"]),
     ).fetchone()
@@ -285,11 +269,6 @@ def sposta_punto(punto_id):
     return stato(db, punto["riunione_id"])
 
 
-def rinumera(db, riunione_id):
-    """Dopo un'eliminazione riporta l'ordine a 1, 2, 3... senza buchi."""
-    ids = [r["id"] for r in db.execute("SELECT id FROM punti WHERE riunione_id=? ORDER BY ordine",
-                                       (riunione_id,))]
-    db.executemany("UPDATE punti SET ordine=? WHERE id=?", [(i, pid) for i, pid in enumerate(ids, 1)])
 
 
 # ---------------------------------------------------------------- proposte
@@ -302,8 +281,8 @@ def crea_proposta(riunione_id):
     riunione = db.execute("SELECT * FROM riunioni WHERE id=?", (riunione_id,)).fetchone()
     if not riunione:
         return errore("Riunione non trovata", 404)
-    if riunione["data"] < datetime.now(ROMA).strftime("%Y-%m-%d"):
-        return errore("La riunione è passata: non si possono più proporre modifiche")
+    if not odg.si_puo_proporre(riunione):
+        return errore("Per questa riunione non si possono più proporre modifiche")
     tipo = dati.get("tipo")
     if tipo not in ("aggiungi", "modifica", "togli"):
         return errore("Tipo di proposta non valido")
@@ -315,6 +294,8 @@ def crea_proposta(riunione_id):
                                (dati.get("punto_id"), riunione_id)).fetchone()
             if not punto:
                 return errore("Punto non trovato", 404)
+            if punto["fisso"]:
+                return errore("Nelle Varie puoi aggiungere direttamente le tue voci, senza proposta")
             punto_id = punto["id"]
         if tipo in ("aggiungi", "modifica"):
             titolo = testo(dati, "titolo", obbligatorio=True)
@@ -346,6 +327,8 @@ def approva_proposta(proposta_id):
     p = proposta_in_attesa(db, proposta_id)
     if not p:
         return errore("Questa proposta è già stata decisa o ritirata", 404)
+    if db.execute("SELECT stato FROM riunioni WHERE id=?", (p["riunione_id"],)).fetchone()["stato"] == "conclusa":
+        return errore(CONCLUSA)
     if p["tipo"] == "aggiungi":
         inserisci_punto(db, p["riunione_id"], p["titolo"], p["minuti"], proposto_da=p["persona_id"])
     elif p["tipo"] == "modifica":

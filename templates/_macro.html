@@ -9,13 +9,29 @@
 {# Chi sta usando l'app, in alto a destra: cerchio colorato con le iniziali
    (porta al profilo). Se non è ancora riconosciuto, "Chi sei?".
    Le macro non vedono le variabili della pagina: "io" va passato. #}
-{% macro chip_io(io, anche_anonimo=False) -%}
+{% macro chip_io(io, anche_anonimo=False, compiti=0) -%}
 {%- if io -%}
 <a class="avatar" href="{{ url_for('pagina_profilo') }}" style="background: {{ io.colore }}" title="{{ io.nome }}"
-   aria-label="Il tuo profilo: {{ io.nome }}">{{ (io.nome.split()|map('first')|join(''))[:2]|upper }}</a>
+   aria-label="Il tuo profilo: {{ io.nome }}{% if compiti %}, {{ compiti }} compiti da fare{% endif %}">{{ (io.nome.split()|map('first')|join(''))[:2]|upper }}
+  {%- if compiti %}<span class="badge">{{ compiti }}</span>{% endif %}</a>
 {%- elif anche_anonimo -%}
 <button class="btn-testata" onclick="chiediNome().then(ok => ok && location.reload())">Chi sei?</button>
 {%- endif -%}
+{%- endmacro %}
+
+{# I compiti assegnati a chi sta usando l'app (Home e profilo). La casella
+   "fatto" chiama fattoMio() in comune.js. #}
+{% macro miei_compiti(compiti) -%}
+<ul class="compiti miei">
+  {%- for c in compiti %}
+  <li class="{{ 'fatto' if c.fatto_il }}">
+    <input type="checkbox" {{ 'checked' if c.fatto_il }} aria-label="Fatto" onchange="fattoMio({{ c.id }}, this.checked)">
+    <span class="corpo">{{ c.testo }}
+      <a class="firma" href="{{ url_for('pagina_riunione', codice=c.riunione_codice) }}">{{ c.tipo_nome }}, {{ data_estesa(c.riunione_data) }}</a>
+    </span>
+  </li>
+  {%- endfor %}
+</ul>
 {%- endmacro %}
 
 {# Riquadro blu con giorno e mese, usato negli elenchi di riunioni #}

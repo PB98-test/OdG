@@ -11,7 +11,7 @@
     {% if puo('riunioni') %}
     <button class="btn-testata" onclick="apriDialogTipo(TIPO)">{{ ic('pencil') }} Modifica</button>
     {% endif %}
-    {{ chip_io(io) or '' }}
+    {{ chip_io(io, compiti=compiti_aperti) }}
     {% if not io %}<img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">{% endif %}
   </div>
   <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>

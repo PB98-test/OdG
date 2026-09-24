@@ -119,3 +119,50 @@ CREATE TABLE IF NOT EXISTS proposte (
     decisa_il   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_proposte_riunione ON proposte(riunione_id, stato);
+
+
+-- ======================================================== tappa 4: la riunione
+-- (Colonne nuove su punti e riunioni: vedi COLONNE_AGGIUNTE in database.py.)
+
+-- Le "Varie": ogni OdG ha come ultimo punto fisso un contenitore in cui
+-- chiunque aggiunge direttamente le sue voci, senza proposta né approvazione.
+CREATE TABLE IF NOT EXISTS voci_varie (
+    id          INTEGER PRIMARY KEY,
+    riunione_id INTEGER NOT NULL REFERENCES riunioni(id) ON DELETE CASCADE,
+    persona_id  INTEGER REFERENCES persone(id) ON DELETE SET NULL,
+    testo       TEXT NOT NULL,
+    creata_il   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Compiti decisi in riunione: "chi fa cosa". Chi li ha assegnati li ritrova
+-- nel profilo e in cima alla riunione successiva dello stesso tipo.
+CREATE TABLE IF NOT EXISTS compiti (
+    id          INTEGER PRIMARY KEY,
+    riunione_id INTEGER NOT NULL REFERENCES riunioni(id) ON DELETE CASCADE,
+    punto_id    INTEGER REFERENCES punti(id) ON DELETE SET NULL,
+    testo       TEXT NOT NULL,
+    persona_id  INTEGER REFERENCES persone(id) ON DELETE SET NULL,   -- a chi è assegnato
+    creato_da   INTEGER REFERENCES persone(id) ON DELETE SET NULL,
+    creato_il   TEXT NOT NULL DEFAULT (datetime('now')),
+    fatto_il    TEXT,
+    fatto_da    INTEGER REFERENCES persone(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_compiti_persona ON compiti(persona_id, fatto_il);
+
+-- Punti non trattati in attesa di una riunione successiva ancora da fissare:
+-- entrano da soli nell'OdG della prossima riunione di quel tipo appena creata.
+CREATE TABLE IF NOT EXISTS da_riportare (
+    id          INTEGER PRIMARY KEY,
+    tipo_id     INTEGER NOT NULL REFERENCES tipi_riunione(id) ON DELETE CASCADE,
+    punto_id    INTEGER REFERENCES punti(id) ON DELETE SET NULL,     -- il punto d'origine
+    titolo      TEXT NOT NULL,
+    minuti      INTEGER NOT NULL,
+    proposto_da INTEGER REFERENCES persone(id) ON DELETE SET NULL
+);
+
+-- Modifiche ai dati da fare una volta sola (es. dare un permesso a un ruolo
+-- esistente): qui si segna quali sono già state fatte. Vedi database.py.
+CREATE TABLE IF NOT EXISTS migrazioni (
+    nome      TEXT PRIMARY KEY,
+    fatta_il  TEXT NOT NULL DEFAULT (datetime('now'))
+);

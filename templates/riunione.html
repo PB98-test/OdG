@@ -30,11 +30,14 @@
     {% if puo('riunioni') %}
     <button class="btn-testata" onclick="apriDialogRiunione({tipo: DATI.tipo, riunione: DATI.riunione})">{{ ic('pencil') }} Modifica</button>
     {% endif %}
-    {{ chip_io(io) }}
+    {{ chip_io(io, compiti=compiti_aperti) }}
     {% if not io %}<img class="logo-piccolo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo AC">{% endif %}
   </div>
   <div class="sopra">{{ tipo.sottotitolo or "AC Ravenna-Cervia" }}</div>
-  <h1>{{ tipo.nome }} {% if passata %}<span class="etichetta">Passata</span>{% endif %}</h1>
+  <h1>{{ tipo.nome }}
+    {% if riunione.stato == 'conclusa' %}<span class="etichetta">Verbale</span>
+    {% elif riunione.stato == 'in_corso' %}<span class="etichetta in-corso">In corso</span>
+    {% elif passata %}<span class="etichetta">Passata</span>{% endif %}</h1>
   <div class="dettagli">
     <span>{{ ic('calendar') }} {{ data_estesa(riunione.data, con_anno=passata)|capitalize }} · {{ riunione.ora_inizio }}{% if riunione.ora_fine %} - {{ riunione.ora_fine }}{% endif %}</span>
     {% if riunione.luogo %}<span>{{ ic('map-pin') }} {{ riunione.luogo }}</span>{% endif %}
@@ -44,26 +47,26 @@
 {% endblock %}
 
 {% block content %}
+{# La pagina ha tre "facce", disegnate da riunione.js secondo lo stato:
+   prima (ordine del giorno), durante (modalità riunione), dopo (verbale).
+   Lo stesso link serve per tutte e tre. #}
 <div class="pagina">
-  {% if not passata %}
-  <div class="azioni">
-    <button class="btn btn-giallo" onclick="document.getElementById('foglio-data').showModal()">{{ ic('calendar-plus') }} Salva la data</button>
-    <button class="btn btn-contorno" onclick="condividi()">{{ ic('share') }} Condividi</button>
-  </div>
-  {% endif %}
+  <div id="azioni-alto"></div>
 
   {% if riunione.note %}
   <div class="avviso" style="margin-top: 14px">{{ ic('notes') }}<span>{{ riunione.note }}</span></div>
   {% endif %}
 
+  <div id="barra-riunione"></div>
+  <div id="compiti-precedenti"></div>
+
   <section class="sezione">
     <div class="titolo-sezione">
-      <h2>Ordine del giorno</h2>
+      <h2 id="titolo-odg">{{ "Verbale" if riunione.stato == "conclusa" else "Ordine del giorno" }}</h2>
       <span class="meta" id="totale-minuti">{% if minuti %}{{ minuti }} min previsti{% endif %}</span>
     </div>
-    {# L'elenco arriva già pronto dal server (è quello che vede anche chi non ha
-       JavaScript); poi riunione.js lo ridisegna con i comandi giusti per ognuno:
-       modifica diretta per chi ha il permesso, proposte per tutti gli altri. #}
+    {# Versione semplice pronta dal server (per chi non ha JavaScript); poi
+       riunione.js la ridisegna con i comandi giusti per ognuno. #}
     <ol class="punti" id="punti">
       {% for p in punti %}
       <li class="punto"><span class="num">{{ loop.index }}</span><span class="titolo">{{ p.titolo }}</span><span class="pillola">{{ p.minuti }} min</span></li>
@@ -71,39 +74,17 @@
       <li class="scheda vuoto">L'ordine del giorno non è ancora stato scritto.</li>
       {% endfor %}
     </ol>
-    {% if puo('odg') or not passata %}
-    <div class="etichetta-form">{{ "Aggiungi un punto" if puo('odg') else "Proponi un punto" }}</div>
-    <form class="nuovo-punto" style="margin-top: 4px" onsubmit="aggiungiPunto(event)">
-      <input type="text" name="titolo" maxlength="200" placeholder="{{ 'Nuovo punto' if puo('odg') else 'Il punto che vorresti' }}" aria-label="Titolo del punto">
-      <select name="minuti" aria-label="Minuti previsti">
-        {% for m in [5, 10, 15, 20, 25, 30, 45, 60] %}<option value="{{ m }}" {{ 'selected' if m == 10 }}>{{ m }} min</option>{% endfor %}
-      </select>
-      <button class="btn btn-blu" aria-label="{{ 'Aggiungi' if puo('odg') else 'Invia proposta' }}">{{ ic('plus' if puo('odg') else 'send') }}</button>
-    </form>
+    <div id="form-punto"></div>
     <div class="errore-form" id="errore-punto"></div>
-    {% endif %}
-
-    {# Proposte in attesa: le disegna riunione.js #}
     <div id="proposte"></div>
   </section>
 
   <section class="sezione">
-    {% if successiva %}
-    <a class="collegamento" href="{{ url_for('pagina_riunione', codice=successiva.codice) }}">
-      {{ ic('calendar-event') }}
-      <span class="corpo">Riunione successiva: <b style="font-weight: 500">{{ data_estesa(successiva.data) }}</b></span>
-      {{ ic('chevron-right') }}
-    </a>
-    {% elif puo('riunioni') %}
-    <button class="btn btn-giallo btn-largo" onclick="apriDialogRiunione({tipo: DATI.tipo, dopo: DATI.riunione})">
-      {{ ic('calendar-plus') }} Fissa la prossima riunione
-    </button>
-    {% endif %}
+    <div id="prossima"></div>
     <a class="collegamento" href="{{ url_for('pagina_tipo', codice=tipo.codice) }}">
       {{ ic('archive') }}<span class="corpo">Tutte le riunioni di {{ tipo.nome }}</span>{{ ic('chevron-right') }}
     </a>
   </section>
-
 </div>
 
 {# ---- Foglio "Salva la data" ---- #}
@@ -156,11 +137,66 @@
   </form>
 </dialog>
 
+{# Nuovo compito (chi fa cosa) #}
+<dialog id="dlg-compito">
+  <form onsubmit="salvaCompito(event)">
+    <h2>Nuovo compito</h2>
+    <p class="spiega" id="compito-punto"></p>
+    <label>Che cosa c'è da fare
+      <input class="campo" name="testo" maxlength="300" placeholder="Prenotare la casa per il campo">
+    </label>
+    <label>A chi tocca
+      <select class="campo" name="persona_id"><option value="">Nessuno in particolare</option></select>
+    </label>
+    <p class="nota">Chi riceve il compito lo ritrova nel suo profilo e in cima alla prossima riunione.</p>
+    <div class="errore-form" id="compito-errore"></div>
+    <div class="dlg-azioni">
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+      <button type="submit" class="btn btn-blu">Aggiungi</button>
+    </div>
+  </form>
+</dialog>
+
+{# Conclusione in due passi: punti non trattati, poi "Quando ci vediamo?" #}
+<dialog id="dlg-concludi">
+  <div id="concludi-passo-1">
+    <h2>Punti non trattati</h2>
+    <p class="spiega">Quelli spuntati qui sotto passano all'ordine del giorno della prossima riunione.</p>
+    <div id="concludi-punti" class="elenco-spunte"></div>
+    <div class="dlg-azioni">
+      <span class="spazio"></span>
+      <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+      <button type="button" class="btn btn-blu" onclick="passoConclusione(2)">Avanti</button>
+    </div>
+  </div>
+  <form id="concludi-passo-2" onsubmit="concludi(event, true)">
+    <h2>Quando ci vediamo la prossima volta?</h2>
+    <div id="concludi-gia-fissata"></div>
+    <div id="concludi-campi">
+      <label>Data<input class="campo" name="data" type="date"></label>
+      <div class="riga-campi">
+        <label>Inizio<input class="campo" name="ora_inizio" type="time"></label>
+        <label>Luogo<input class="campo" name="luogo" maxlength="60"></label>
+      </div>
+    </div>
+    <div class="errore-form" id="concludi-errore"></div>
+    <div class="dlg-azioni">
+      <button type="button" class="btn btn-tenue" id="btn-salta" onclick="concludi(event, false)">Salta</button>
+      <span class="spazio"></span>
+      <button type="submit" class="btn btn-blu" id="btn-concludi">Fissa e concludi</button>
+    </div>
+  </form>
+</dialog>
+
 {% if puo('riunioni') %}{% include "_dialog_riunione.html" %}{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>const DATI = {{ dati|tojson }};</script>
 <script src="{{ url_for('static', filename='js/riunione.js') }}"></script>
+<script src="{{ url_for('static', filename='js/riunione_corso.js') }}"></script>
+<script src="{{ url_for('static', filename='js/riunione_verbale.js') }}"></script>
+<script>avvia();</script>
 {% if puo('riunioni') %}<script src="{{ url_for('static', filename='js/gestione.js') }}"></script>{% endif %}
 {% endblock %}

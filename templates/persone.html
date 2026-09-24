@@ -8,7 +8,7 @@
   <div class="testata-barra">
     <a class="indietro" href="{{ url_for('home') }}">{{ ic('chevron-left') }} Tutte le riunioni</a>
     <span class="spazio"></span>
-    {{ chip_io(io) }}
+    {{ chip_io(io, compiti=compiti_aperti) }}
   </div>
   <div class="sopra">Gestione</div>
   <h1>Persone e ruoli</h1>

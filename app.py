@@ -1,7 +1,6 @@
 """Entry point dell'app Flask: pagine, file per il calendario, immagine di anteprima."""
 import os
 import secrets
-from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,9 +19,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 import anteprima  # noqa: E402
 import api  # noqa: E402
 import api_persone  # noqa: E402
+import api_riunione  # noqa: E402
 import calendario  # noqa: E402
 import database  # noqa: E402
 import identita  # noqa: E402
+import odg  # noqa: E402
 from database import get_db  # noqa: E402
 
 database.assicura_db()   # crea il database se manca, aggiunge le tabelle nuove
@@ -37,6 +38,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.teardown_appcontext(database.close_db)
 app.register_blueprint(api.bp)
 app.register_blueprint(api_persone.bp)
+app.register_blueprint(api_riunione.bp)
 
 
 @app.before_request
@@ -62,7 +64,25 @@ def niente_motori_di_ricerca(risposta):
 @app.context_processor
 def variabili_comuni():
     """Variabili disponibili in tutti i template."""
-    return {"io": g.get("io"), "puo": identita.puo}
+    return {"io": g.get("io"), "puo": identita.puo, "compiti_aperti": len(miei_compiti())}
+
+
+def miei_compiti(anche_fatti=False):
+    """I compiti assegnati a chi sta usando l'app (per il pallino sull'avatar,
+    la Home e il profilo). Calcolati una volta sola per richiesta."""
+    if not g.get("io"):
+        return []
+    chiave = "compiti_tutti" if anche_fatti else "compiti_aperti"
+    if chiave not in g:
+        righe = get_db().execute(
+            f"""SELECT c.*, r.codice AS riunione_codice, r.data AS riunione_data, t.nome AS tipo_nome
+                FROM compiti c JOIN riunioni r ON r.id=c.riunione_id JOIN tipi_riunione t ON t.id=r.tipo_id
+                WHERE c.persona_id=? {'' if anche_fatti else 'AND c.fatto_il IS NULL'}
+                ORDER BY c.fatto_il IS NOT NULL, r.data DESC, c.id""",
+            (g.io["id"],),
+        ).fetchall()
+        g.setdefault(chiave, [dict(r) for r in righe])
+    return g.get(chiave)
 
 
 # Funzioni usabili ovunque nei template, anche dentro i "mattoncini" di _macro.html
@@ -70,8 +90,7 @@ def variabili_comuni():
 app.jinja_env.globals["data_estesa"] = calendario.data_estesa
 
 
-def oggi():
-    return datetime.now(calendario.ROMA).strftime("%Y-%m-%d")
+oggi = odg.oggi
 
 
 @app.route("/api/ping")
@@ -136,7 +155,7 @@ def home():
             "SELECT * FROM riunioni WHERE tipo_id=? AND data>=? ORDER BY data, ora_inizio LIMIT 1",
             (t["id"], oggi()),
         ).fetchone()
-    return render_template("home.html", tipi=tipi, prossime=prossime)
+    return render_template("home.html", tipi=tipi, prossime=prossime, compiti=miei_compiti())
 
 
 @app.route("/t/<codice>")
@@ -170,27 +189,28 @@ def carica_riunione(codice):
 
 @app.route("/r/<codice>")
 def pagina_riunione(codice):
+    """La stessa pagina (e lo stesso link) cambia con la riunione: prima mostra
+    l'ordine del giorno, durante la modalità riunione, dopo il verbale."""
     riunione, tipo, punti = carica_riunione(codice)
     db = get_db()
     url = url_for("pagina_riunione", codice=codice, _external=True)
-    # Riunione successiva dello stesso tipo, per il collegamento in fondo alla pagina
-    successiva = db.execute(
-        """SELECT * FROM riunioni WHERE tipo_id=? AND (data>? OR (data=? AND ora_inizio>?))
-           ORDER BY data, ora_inizio LIMIT 1""",
-        (tipo["id"], riunione["data"], riunione["data"], riunione["ora_inizio"]),
-    ).fetchone()
+    conclusa = riunione["stato"] == "conclusa"
 
     # Testi dell'anteprima WhatsApp (tag Open Graph nel template)
     minuti = sum(p["minuti"] for p in punti)
-    anteprima_titolo = f"{tipo['nome']} - {calendario.data_estesa(riunione['data'])}, ore {riunione['ora_inizio']}"
-    # Solo il numero di punti: luogo, data e associazione sono già nell'immagine
-    if punti:
-        anteprima_testo = f"{len(punti)} punt{'o' if len(punti) == 1 else 'i'} all'ordine del giorno"
+    quando = f"{calendario.data_estesa(riunione['data'])}, ore {riunione['ora_inizio']}"
+    if conclusa:
+        anteprima_titolo = f"Verbale: {tipo['nome']} - {calendario.data_estesa(riunione['data'])}"
+        trattati = sum(1 for p in punti if p["spuntato_da"])
+        anteprima_testo = f"{trattati} punt{'o' if trattati == 1 else 'i'} trattat{'o' if trattati == 1 else 'i'}"
     else:
-        anteprima_testo = "Ordine del giorno in preparazione"
+        anteprima_titolo = f"{tipo['nome']} - {quando}"
+        # Solo il numero di punti: luogo, data e associazione sono già nell'immagine
+        anteprima_testo = (f"{len(punti)} punt{'o' if len(punti) == 1 else 'i'} all'ordine del giorno"
+                           if punti else "Ordine del giorno in preparazione")
     return render_template(
         "riunione.html",
-        riunione=riunione, tipo=tipo, punti=punti, successiva=successiva,
+        riunione=riunione, tipo=tipo, punti=punti,
         passata=riunione["data"] < oggi(), minuti=minuti, url=url,
         anteprima_titolo=anteprima_titolo, anteprima_testo=anteprima_testo,
         # "?v=" cambia a ogni modifica: così l'immagine non resta quella vecchia in cache
@@ -200,7 +220,7 @@ def pagina_riunione(codice):
         # Dati per il JavaScript della pagina (nel template passano dal filtro
         # "tojson", che li protegge anche se un titolo contiene caratteri strani)
         dati={
-            "riunione": dict(riunione), "tipo": dict(tipo), **api.stato(db, riunione["id"]),
+            **odg.stato(db, riunione["id"]), "tipo": dict(tipo),
             "url": url, "titolo_condivisione": anteprima_titolo, "passata": riunione["data"] < oggi(),
             "io": g.io,
         },
@@ -232,7 +252,7 @@ def immagine_anteprima(codice):
 def pagina_profilo():
     if not g.io:
         return redirect(url_for("home", presentati=1))
-    return render_template("profilo.html")
+    return render_template("profilo.html", compiti=miei_compiti(anche_fatti=True))
 
 
 @app.route("/persone")

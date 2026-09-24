@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macro.html" import ic %}
+{% from "_macro.html" import ic, miei_compiti %}
 
 {% block title %}Il tuo profilo · OdG{% endblock %}
 
@@ -26,6 +26,17 @@
         <div class="secondaria">Questo colore firma le tue proposte e le tue spunte.</div>
       </div>
     </div>
+  </section>
+
+  <section class="sezione">
+    {% set da_fare = compiti|rejectattr('fatto_il')|list %}
+    <div class="titolo-sezione"><h2>I tuoi compiti</h2>
+      <span class="meta">{{ da_fare|length ~ " da fare" if da_fare else "" }}</span></div>
+    {% if compiti %}
+    <div class="scheda riquadro-compiti">{{ miei_compiti(compiti) }}</div>
+    {% else %}
+    <div class="scheda vuoto">Nessun compito assegnato a te, per ora.</div>
+    {% endif %}
   </section>
 
   <section class="sezione">

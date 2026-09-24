@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macro.html" import ic, chip_io %}
+{% from "_macro.html" import ic, chip_io, miei_compiti %}
 
 {% block testata %}
 <header class="testata">
@@ -12,13 +12,20 @@
       </div>
     </div>
     <span class="spazio"></span>
-    {{ chip_io(io, anche_anonimo=True) }}
+    {{ chip_io(io, anche_anonimo=True, compiti=compiti_aperti) }}
   </div>
 </header>
 {% endblock %}
 
 {% block content %}
 <div class="pagina">
+  {% if compiti %}
+  <section class="sezione">
+    <div class="titolo-sezione"><h2>I tuoi compiti</h2><span class="meta">{{ compiti|length }} da fare</span></div>
+    <div class="scheda riquadro-compiti">{{ miei_compiti(compiti) }}</div>
+  </section>
+  {% endif %}
+
   <section class="sezione">
     <div class="titolo-sezione"><h2>Riunioni</h2></div>
     {% if tipi %}
