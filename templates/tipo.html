@@ -27,6 +27,10 @@
 
 {% block content %}
 <div class="pagina">
+  {# Promemoria del giorno prima per tutte le riunioni di questo tipo #}
+  <button class="btn btn-largo campanella{{ ' attiva' if seguito }}" id="btn-segui" style="margin-bottom: 18px"
+          onclick="cambiaSegui()" aria-pressed="{{ 'true' if seguito else 'false' }}"></button>
+
   <section class="sezione">
     <div class="titolo-sezione"><h2>Prossime riunioni</h2></div>
     {% if prossime %}
@@ -57,8 +61,27 @@
 {% endblock %}
 
 {% block scripts %}
-{% if puo('riunioni') %}
 <script>const TIPO = {{ tipo_dati|tojson }};</script>
+<script>
+  let seguito = {{ 'true' if seguito else 'false' }};
+  function disegnaSegui() {
+    const b = document.getElementById("btn-segui");
+    b.classList.toggle("attiva", seguito);
+    b.setAttribute("aria-pressed", seguito);
+    b.innerHTML = seguito
+      ? `${icona("bell-ringing")} Promemoria attivo: il giorno prima ti avvisiamo`
+      : `${icona("bell")} Avvisami il giorno prima di ogni riunione`;
+  }
+  async function cambiaSegui() {
+    const nuovo = await seguiTipo(TIPO.id, !seguito);
+    if (nuovo === null) return;
+    seguito = nuovo;
+    if (!IO_ID) location.reload();   // ti sei appena presentato: aggiorno la pagina
+    else disegnaSegui();
+  }
+  disegnaSegui();
+</script>
+{% if puo('riunioni') %}
 <script src="{{ url_for('static', filename='js/gestione.js') }}"></script>
 {% endif %}
 {% endblock %}

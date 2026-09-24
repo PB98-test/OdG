@@ -107,6 +107,12 @@
     <span class="quadro">{{ ic('brand-google') }}</span>
     <span class="corpo"><span class="principale">Google Calendar</span><span class="secondaria">Si apre già compilato; il promemoria è quello del tuo Google Calendar</span></span>
   </a>
+  {# Notifica dell'app: vale per tutte le riunioni di questo tipo (vedi riunione.js) #}
+  <button class="opzione" id="opzione-notifica" onclick="cambiaSeguiRiunione()">
+    <span class="quadro">{{ ic('bell') }}</span>
+    <span class="corpo"><span class="principale">Notifica di OdG</span>
+      <span class="secondaria" id="stato-notifica">Il giorno prima di ogni riunione di {{ tipo.nome }}</span></span>
+  </button>
   <button class="btn btn-tenue btn-largo" onclick="this.closest('dialog').close()">Chiudi</button>
 </dialog>
 

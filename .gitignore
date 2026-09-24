@@ -3,3 +3,5 @@ __pycache__/
 .env
 *.db
 ODG_CHIAVE_GESTIONE*.txt
+vapid_private.pem
+vapid_public.txt

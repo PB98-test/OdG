@@ -185,6 +185,97 @@ function chiudiInstalla() {
 
 document.addEventListener("DOMContentLoaded", mostraInstalla);
 
+// ------------------------------------------------------------ notifiche
+
+/** La chiave pubblica arriva come testo; il browser la vuole come sequenza di byte. */
+function base64UrlABytes(base64) {
+  const riempimento = "=".repeat((4 - (base64.length % 4)) % 4);
+  const testo = atob((base64 + riempimento).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...testo].map(c => c.charCodeAt(0)));
+}
+
+function notificheSupportate() {
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+/** L'iscrizione alle notifiche di questo dispositivo (o null). */
+async function iscrizioneAttuale() {
+  if (!notificheSupportate()) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+/** Prima di tutto bisogna sapere chi sei (le notifiche sono personali). */
+async function assicuraIdentita() {
+  if (IO_ID) return true;
+  return chiediNome();
+}
+
+/**
+ * Attiva le notifiche su questo dispositivo: chiede il permesso al telefono,
+ * iscrive il dispositivo e fa arrivare subito una notifica di prova.
+ * Restituisce true se tutto è andato bene.
+ */
+async function attivaNotifiche() {
+  if (suIphone() && !giaInstallata()) {
+    alert("Su iPhone le notifiche funzionano solo con OdG installata nella schermata Home.\n\n" +
+          "Da Safari: tocca Condividi (il quadrato con la freccia) e poi \"Aggiungi alla schermata Home\". " +
+          "Poi apri OdG dall'icona e riprova.");
+    return false;
+  }
+  if (!notificheSupportate()) { toast("Questo browser non supporta le notifiche"); return false; }
+  if (!(await assicuraIdentita())) return false;
+  const permesso = await Notification.requestPermission();
+  if (permesso !== "granted") {
+    toast("Notifiche non permesse: si possono riattivare dalle impostazioni del telefono");
+    return false;
+  }
+  const chiave = await api("GET", "/api/notifiche/chiave");
+  if (!chiave.ok) { toast(chiave.data.errore || "Notifiche non disponibili"); return false; }
+  const reg = await navigator.serviceWorker.ready;
+  let iscrizione;
+  try {
+    iscrizione = await reg.pushManager.subscribe({
+      userVisibleOnly: true,   // obbligatorio: ogni messaggio deve diventare una notifica visibile
+      applicationServerKey: base64UrlABytes(chiave.data.chiave),
+    });
+  } catch (e) {
+    toast("Il telefono non ha permesso l'iscrizione alle notifiche");
+    return false;
+  }
+  const r = await api("POST", "/api/notifiche/iscrivi", iscrizione.toJSON(), true);
+  if (!r.ok) { toast(r.data.errore || "Non è andata: riprova"); return false; }
+  toast(r.data.test_riuscito ? "Notifiche attive: dovrebbe arrivarti una prova"
+                             : "Iscrizione salvata, ma la prova non è partita: avvisa l'amministratore");
+  return true;
+}
+
+async function disattivaNotifiche() {
+  const iscrizione = await iscrizioneAttuale();
+  if (iscrizione) {
+    await api("POST", "/api/notifiche/disiscrivi", { endpoint: iscrizione.endpoint }, true);
+    await iscrizione.unsubscribe();
+  }
+  toast("Notifiche disattivate su questo dispositivo");
+}
+
+/**
+ * "Avvisami il giorno prima" per un tipo di riunione. Se il dispositivo non
+ * ha ancora le notifiche attive, le attiva prima.
+ * Restituisce il nuovo stato (true = seguito), o null se non è cambiato.
+ */
+async function seguiTipo(tipoId, segui) {
+  if (segui) {
+    if (!(await assicuraIdentita())) return null;
+    if (!(await iscrizioneAttuale()) && !(await attivaNotifiche())) return null;
+  }
+  const r = await api("POST", "/api/notifiche/segui", { tipo_id: tipoId, segui }, true);
+  if (!r.ok) { toast(r.data.errore || "Non è andata: riprova"); return null; }
+  if (!segui) toast("Promemoria tolto");
+  else toast("Promemoria attivo: ti avviseremo il giorno prima");
+  return r.data.seguito;
+}
+
 // ------------------------------------------------------------ i miei compiti
 
 /** Casella "fatto" nell'elenco dei propri compiti (Home e profilo). */

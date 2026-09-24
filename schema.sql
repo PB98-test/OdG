@@ -169,6 +169,35 @@ CREATE TABLE IF NOT EXISTS presenze (
     PRIMARY KEY (riunione_id, persona_id)
 );
 
+-- ======================================================== tappa 5: notifiche
+
+-- I dispositivi su cui una persona ha attivato le notifiche. "endpoint" è
+-- l'indirizzo del servizio (di Google, Apple o Mozilla) che recapita il
+-- messaggio a quel telefono; "chiavi" servono a cifrare il contenuto.
+CREATE TABLE IF NOT EXISTS iscrizioni_push (
+    id          INTEGER PRIMARY KEY,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    endpoint    TEXT NOT NULL UNIQUE,
+    chiavi      TEXT NOT NULL,
+    creata_il   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- I tipi di riunione per cui una persona vuole il promemoria del giorno prima.
+CREATE TABLE IF NOT EXISTS seguiti (
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    tipo_id     INTEGER NOT NULL REFERENCES tipi_riunione(id) ON DELETE CASCADE,
+    PRIMARY KEY (persona_id, tipo_id)
+);
+
+-- Promemoria già mandati: se l'invio quotidiano parte due volte, non si
+-- manda due volte lo stesso avviso.
+CREATE TABLE IF NOT EXISTS promemoria_inviati (
+    riunione_id INTEGER NOT NULL REFERENCES riunioni(id) ON DELETE CASCADE,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    inviato_il  TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (riunione_id, persona_id)
+);
+
 -- Modifiche ai dati da fare una volta sola (es. dare un permesso a un ruolo
 -- esistente): qui si segna quali sono già state fatte. Vedi database.py.
 CREATE TABLE IF NOT EXISTS migrazioni (

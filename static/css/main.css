@@ -431,3 +431,9 @@ body.offline #banner-offline { display: block; }
 /* Installazione dell'app */
 .installa { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .installa .passi { font-size: 14px; color: var(--testo-tenue); line-height: 1.5; padding-left: 18px; }
+
+/* Notifiche: pulsante "Avvisami" e opzione nel foglio "Salva la data" */
+.campanella { border-color: var(--blu); color: var(--blu); }
+.campanella.attiva { background: var(--blu-chiaro); border-color: var(--blu-chiaro); }
+.opzione.attiva .quadro { background: var(--blu); color: var(--bianco); }
+.riquadro-notifiche { padding: 12px; }

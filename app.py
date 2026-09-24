@@ -18,6 +18,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 
 import anteprima  # noqa: E402
 import api  # noqa: E402
+import api_notifiche  # noqa: E402
 import api_persone  # noqa: E402
 import api_riunione  # noqa: E402
 import calendario  # noqa: E402
@@ -39,6 +40,7 @@ app.teardown_appcontext(database.close_db)
 app.register_blueprint(api.bp)
 app.register_blueprint(api_persone.bp)
 app.register_blueprint(api_riunione.bp)
+app.register_blueprint(api_notifiche.bp)
 
 
 @app.before_request
@@ -77,6 +79,13 @@ def versione_dei_file_statici(endpoint, valori):
 def variabili_comuni():
     """Variabili disponibili in tutti i template."""
     return {"io": g.get("io"), "puo": identita.puo, "compiti_aperti": len(miei_compiti())}
+
+
+def tipi_seguiti():
+    """Id dei tipi di riunione per cui chi usa l'app vuole il promemoria."""
+    if not g.get("io"):
+        return set()
+    return {r[0] for r in get_db().execute("SELECT tipo_id FROM seguiti WHERE persona_id=?", (g.io["id"],))}
 
 
 def miei_compiti(anche_fatti=False):
@@ -185,7 +194,7 @@ def pagina_tipo(codice):
         (tipo["id"], oggi()),
     ).fetchall()
     return render_template("tipo.html", tipo=tipo, prossime=prossime, passate=passate,
-                           tipo_dati=dict(tipo))
+                           tipo_dati=dict(tipo), seguito=tipo["id"] in tipi_seguiti())
 
 
 def carica_riunione(codice):
@@ -234,7 +243,7 @@ def pagina_riunione(codice):
         dati={
             **odg.stato(db, riunione["id"]), "tipo": dict(tipo),
             "url": url, "titolo_condivisione": anteprima_titolo, "passata": riunione["data"] < oggi(),
-            "io": g.io,
+            "io": g.io, "seguito": tipo["id"] in tipi_seguiti(),
         },
     )
 
@@ -286,7 +295,9 @@ def immagine_anteprima(codice):
 def pagina_profilo():
     if not g.io:
         return redirect(url_for("home", presentati=1))
-    return render_template("profilo.html", compiti=miei_compiti(anche_fatti=True))
+    tipi = get_db().execute("SELECT id, nome FROM tipi_riunione WHERE archiviato=0 ORDER BY nome").fetchall()
+    return render_template("profilo.html", compiti=miei_compiti(anche_fatti=True),
+                           tipi=tipi, seguiti=tipi_seguiti())
 
 
 @app.route("/persone")

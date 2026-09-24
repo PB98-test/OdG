@@ -29,6 +29,8 @@
   <script>
     // Indirizzo del file delle icone, per le icone disegnate dal JavaScript
     const ICONE = "{{ url_for('static', filename='img/icone.svg') }}";
+    // Chi sta usando l'app (null se non si è ancora presentato)
+    const IO_ID = {{ io.id if io else "null" }};
   </script>
   <script src="{{ url_for('static', filename='js/comune.js') }}"></script>
   <script>

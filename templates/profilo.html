@@ -42,6 +42,23 @@
   <div id="installa" style="margin-top: 22px"></div>
 
   <section class="sezione">
+    <div class="titolo-sezione"><h2>Notifiche</h2></div>
+    <div class="scheda riquadro-notifiche">
+      <p class="spiega" style="margin-bottom: 8px">Il giorno prima delle riunioni che scegli qui sotto, OdG ti manda un promemoria
+        (con i tuoi compiti da fare e, se li approvi tu, le proposte in attesa).</p>
+      <div id="stato-dispositivo" class="nota" style="margin-top: 0"></div>
+      {% for t in tipi %}
+      <label class="permesso">
+        <input type="checkbox" {{ 'checked' if t.id in seguiti }} onchange="cambiaSeguiProfilo({{ t.id }}, this)"> {{ t.nome }}
+      </label>
+      {% else %}
+      <p class="nota">Non ci sono ancora tipi di riunione.</p>
+      {% endfor %}
+      <div class="azioni-presenti" id="azioni-notifiche" style="margin-top: 10px"></div>
+    </div>
+  </section>
+
+  <section class="sezione">
     <div class="titolo-sezione"><h2>Altri dispositivi</h2></div>
     <p class="spiega">Vuoi usare OdG anche sul computer o su un altro telefono? Crea un link valido 15 minuti:
       aprilo sull'altro dispositivo, oppure inquadra il QR code con la fotocamera.</p>
@@ -69,6 +86,38 @@
     if (!r.ok) return toast(r.data.errore || "Non è andata: riprova");
     mostraLink("Il tuo link", `Valido ${r.data.minuti} minuti e una sola volta. Non mandarlo ad altri: chi lo apre entra come te.`, r.data);
   }
+
+  // ---- Notifiche: stato di QUESTO dispositivo e pulsanti
+  async function disegnaStatoNotifiche() {
+    const stato = document.getElementById("stato-dispositivo");
+    const azioni = document.getElementById("azioni-notifiche");
+    if (!notificheSupportate() && !suIphone()) {
+      stato.textContent = "Questo browser non supporta le notifiche.";
+      azioni.innerHTML = "";
+      return;
+    }
+    const attiva = !!(await iscrizioneAttuale());
+    stato.textContent = attiva ? "Su questo dispositivo le notifiche sono attive."
+                               : "Su questo dispositivo le notifiche non sono ancora attive.";
+    azioni.innerHTML = attiva
+      ? `<button class="btn btn-contorno btn-piccolo" onclick="provaNotifica()">${icona("bell-ringing")} Mandami una prova</button>
+         <button class="btn btn-tenue btn-piccolo" onclick="disattivaNotifiche().then(disegnaStatoNotifiche)">${icona("bell-off")} Disattiva qui</button>`
+      : `<button class="btn btn-blu btn-piccolo" onclick="attivaNotifiche().then(disegnaStatoNotifiche)">${icona("bell")} Attiva su questo dispositivo</button>`;
+  }
+
+  async function cambiaSeguiProfilo(tipoId, casella) {
+    const nuovo = await seguiTipo(tipoId, casella.checked);
+    if (nuovo === null) casella.checked = !casella.checked;   // non è andata: rimetto com'era
+    disegnaStatoNotifiche();
+  }
+
+  async function provaNotifica() {
+    const r = await api("POST", "/api/notifiche/prova");
+    if (!r.ok) return toast(r.data.errore || "Non è andata: riprova");
+    toast(r.data.dispositivi ? "Inviata: dovrebbe arrivare tra pochi secondi" : "Non è partita: avvisa l'amministratore");
+  }
+
+  disegnaStatoNotifiche();
 
   async function esciDaQui() {
     const avviso = {{ 'true' if (io.permessi.riunioni or io.permessi.odg or io.permessi.conclude or io.permessi.persone) else 'false' }}

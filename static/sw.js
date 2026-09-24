@@ -80,6 +80,30 @@ async function pagina(richiesta) {
   }
 }
 
+// ------------------------------------------------------------ notifiche
+
+// Arriva una notifica (dal server, attraverso Google/Apple/Mozilla): la mostro
+self.addEventListener("push", evento => {
+  let dati = { titolo: "OdG", corpo: "", url: "/" };
+  try { dati = { ...dati, ...evento.data.json() }; } catch (e) { /* messaggio non in JSON: valori di base */ }
+  evento.waitUntil(self.registration.showNotification(dati.titolo, {
+    body: dati.corpo,
+    icon: "/static/icons/icon-192.png",
+    badge: "/static/icons/icon-192.png",
+    data: { url: dati.url },
+  }));
+});
+
+// Tocco sulla notifica: apre la pagina indicata (o la porta davanti se è già aperta)
+self.addEventListener("notificationclick", evento => {
+  evento.notification.close();
+  const url = evento.notification.data?.url || "/";
+  evento.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(finestre => {
+    const aperta = finestre.find(f => new URL(f.url).pathname === url);
+    return aperta ? aperta.focus() : self.clients.openWindow(url);
+  }));
+});
+
 /** Tiene solo le pagine visitate più di recente (la pagina offline resta sempre). */
 async function potaPagine(cache) {
   const chiavi = (await cache.keys()).filter(r => new URL(r.url).pathname !== "/offline");

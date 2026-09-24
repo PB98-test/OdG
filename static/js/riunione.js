@@ -438,6 +438,25 @@ function sceltaAvviso(valore) {
   if (radio) { radio.checked = true; sceltaAvviso(scelto); }
 })();
 
+/** "Notifica di OdG" nel foglio: il promemoria dell'app per tutto il tipo di riunione. */
+function disegnaNotifica() {
+  const b = document.getElementById("opzione-notifica");
+  b.classList.toggle("attiva", !!DATI.seguito);
+  b.querySelector(".quadro").innerHTML = icona(DATI.seguito ? "bell-ringing" : "bell");
+  document.getElementById("stato-notifica").textContent = DATI.seguito
+    ? `Attiva per ${DATI.tipo.nome}: tocca per toglierla`
+    : `Il giorno prima di ogni riunione di ${DATI.tipo.nome}`;
+}
+
+async function cambiaSeguiRiunione() {
+  const nuovo = await seguiTipo(DATI.tipo.id, !DATI.seguito);
+  if (nuovo === null) return;
+  if (!IO_ID) { location.reload(); return; }   // ti sei appena presentato: aggiorno la pagina
+  DATI.seguito = nuovo;
+  disegnaNotifica();
+}
+disegnaNotifica();
+
 // ------------------------------------------------------------ condivisione
 
 /**
