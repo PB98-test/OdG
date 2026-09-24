@@ -236,6 +236,91 @@ function disegnaCompitiPrecedenti() {
   </section>`;
 }
 
+// ------------------------------------------------------------ presenti
+
+/** Sezione "Presenti": compare quando la riunione è iniziata (e resta nel verbale). */
+function disegnaPresenti() {
+  const box = document.getElementById("presenti");
+  if (STATO() === "in_programma") { box.innerHTML = ""; return; }
+  const presenti = DATI.presenti;
+  const ciSono = DATI.io_id && presenti.some(p => p.id === DATI.io_id);
+  const nomi = presenti.map(p =>
+    `<span class="chip-persona">${pallino(p.colore)}${esc(p.nome)}</span>`).join("");
+  const bottoni = [
+    !ciSono && STATO() === "in_corso"
+      ? `<button class="btn btn-tenue btn-piccolo" onclick="ciSonoAnchIo()">${icona("check")} Ci sono anch'io</button>` : "",
+    PUO().verbale
+      ? `<button class="btn btn-contorno btn-piccolo" onclick="apriPresenti()">${icona("users")} ${presenti.length ? "Modifica" : "Segna i presenti"}</button>` : "",
+  ].join("");
+  box.innerHTML = `<section class="sezione">
+    <div class="titolo-sezione"><h2>Presenti</h2><span class="meta">${presenti.length || ""}</span></div>
+    <div class="scheda riquadro-presenti">
+      ${nomi ? `<div class="chips">${nomi}</div>` : `<div class="nota" style="margin: 0 0 8px">Nessuno segnato, per ora.</div>`}
+      ${bottoni ? `<div class="azioni-presenti">${bottoni}</div>` : ""}
+    </div>
+  </section>`;
+}
+
+async function ciSonoAnchIo() {
+  if (aggiorna(await api("POST", `/api/riunioni/${DATI.riunione.id}/presenti/io`), null)) toast("Segnato tra i presenti");
+}
+
+let _persone = [];                 // tutte le persone note (per la finestra)
+let _sceltiPresenti = new Set();   // spunte nella finestra, non ancora salvate
+
+async function apriPresenti() {
+  _sceltiPresenti = new Set(DATI.presenti.map(p => p.id));
+  document.getElementById("presenti-errore").textContent = "";
+  document.getElementById("cerca-presenti").value = "";
+  document.querySelector("#dlg-presenti .nuova-persona").reset();
+  await caricaPersone();
+  document.getElementById("dlg-presenti").showModal();
+}
+
+async function caricaPersone() {
+  const r = await api("GET", "/api/persone/nomi");
+  if (!r.ok) { document.getElementById("presenti-errore").textContent = r.data.errore || "Elenco non disponibile"; return; }
+  _persone = r.data.persone;
+  disegnaElencoPresenti();
+}
+
+function disegnaElencoPresenti(filtro = "") {
+  const f = filtro.trim().toLowerCase();
+  document.getElementById("elenco-presenti").innerHTML = _persone
+    .filter(p => !f || p.nome.toLowerCase().includes(f))
+    .map(p => `<label class="permesso">
+      <input type="checkbox" ${_sceltiPresenti.has(p.id) ? "checked" : ""}
+             onchange="this.checked ? _sceltiPresenti.add(${p.id}) : _sceltiPresenti.delete(${p.id})">
+      ${pallino(p.colore)}${esc(p.nome)}${p.attiva ? "" : ` <span class="nota-inline">non ha ancora usato OdG</span>`}
+    </label>`).join("") || `<div class="nota">Nessun nome trovato: aggiungilo qui sotto.</div>`;
+}
+
+function filtraPresenti(testo) {
+  disegnaElencoPresenti(testo);
+}
+
+async function nuovoPresente(evento) {
+  evento.preventDefault();
+  const campo = evento.target.nome;
+  const errore = document.getElementById("presenti-errore");
+  if (campo.value.trim().length < 2) { errore.textContent = "Scrivi nome e iniziale del cognome"; return; }
+  const r = await api("POST", `/api/riunioni/${DATI.riunione.id}/presenti/nuova`, { nome: campo.value });
+  if (!r.ok) { errore.textContent = r.data.errore || "Non è andata: riprova"; return; }
+  errore.textContent = "";
+  campo.value = "";
+  _sceltiPresenti.add(r.data.nuova.id);   // la persona nuova è già segnata presente
+  await caricaPersone();
+  toast(`${r.data.nuova.nome} aggiunta`);
+}
+
+async function salvaPresenti() {
+  const r = await api("PUT", `/api/riunioni/${DATI.riunione.id}/presenti`, { persone: [..._sceltiPresenti] });
+  if (aggiorna(r, "presenti-errore")) {
+    document.getElementById("dlg-presenti").close();
+    toast("Presenti aggiornati");
+  }
+}
+
 // ------------------------------------------------------------ conclusione
 
 function apriConclusione() {

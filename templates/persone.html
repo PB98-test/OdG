@@ -23,10 +23,10 @@
 
     <div class="scheda riquadro-form" style="margin-top: 12px">
       <div class="etichetta-form">Aggiungi una persona in anticipo</div>
-      <p class="nota">Chi ha un ruolo senza permessi la sceglierà dall'elenco al primo accesso.
-        Per i ruoli con permessi riceverai un link personale da mandarle.</p>
+      <p class="nota">Chi ha un ruolo senza permessi di gestione la sceglierà dall'elenco al primo accesso.
+        Per i ruoli che gestiscono riunioni, OdG o persone riceverai un link personale da mandarle.</p>
       <form class="nuova-persona" onsubmit="aggiungiPersona(event)">
-        <input class="campo" name="nome" maxlength="30" placeholder="Anna B." aria-label="Nome e iniziale del cognome">
+        <input class="campo" name="nome" maxlength="30" placeholder="Nome e iniziale del cognome" aria-label="Nome e iniziale del cognome">
         <select class="campo" name="ruolo_id" aria-label="Ruolo" id="scelta-ruolo-nuova"></select>
         <button class="btn btn-blu" aria-label="Aggiungi">{{ ic('user-plus') }}</button>
       </form>

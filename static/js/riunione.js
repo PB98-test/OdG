@@ -17,6 +17,7 @@ const ODG_MODIFICABILE = () => PUO().odg;
 
 function disegna() {
   disegnaAzioniAlto();
+  disegnaPresenti();                  // riunione_corso.js (dall'inizio in poi)
   if (STATO() === "conclusa") {
     disegnaVerbale();                 // riunione_verbale.js
   } else {
@@ -127,7 +128,7 @@ function disegnaFormPunto() {
   const odg = ODG_MODIFICABILE();
   box.innerHTML = `<div class="etichetta-form">${odg ? "Aggiungi un punto" : "Proponi un punto"}</div>
     <form class="nuovo-punto" style="margin-top: 4px" onsubmit="aggiungiPunto(event)">
-      <input type="text" name="titolo" maxlength="200" placeholder="${odg ? "Nuovo punto" : "Il punto che vorresti"}" aria-label="Titolo del punto">
+      <input type="text" name="titolo" maxlength="200" placeholder="${odg ? "Titolo del punto" : "Titolo del punto da proporre"}" aria-label="Titolo del punto">
       <select name="minuti" aria-label="Minuti previsti">
         ${[5, 10, 15, 20, 25, 30, 45, 60].map(m => `<option value="${m}" ${m === 10 ? "selected" : ""}>${m} min</option>`).join("")}
       </select>
@@ -165,7 +166,7 @@ function vociVarie(solaLettura = false) {
       ${v.persona_nome ? `<span class="firma" style="color:${esc(v.persona_colore)}">${pallino(v.persona_colore)}${esc(v.persona_nome)}</span>` : ""}</span>${togli}</li>`;
   }).join("");
   const form = !solaLettura && PUO().proporre ? `<form class="nuova-varia" onsubmit="aggiungiVaria(event)">
-      <input class="campo" name="testo" maxlength="200" placeholder="Aggiungi una voce alle Varie" aria-label="Nuova voce delle Varie">
+      <input class="campo" name="testo" maxlength="200" placeholder="Una voce per le Varie" aria-label="Nuova voce delle Varie">
       <button class="btn btn-tenue" aria-label="Aggiungi">${icona("plus")}</button>
     </form>` : "";
   if (!voci && !form) return "";

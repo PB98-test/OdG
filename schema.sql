@@ -160,6 +160,15 @@ CREATE TABLE IF NOT EXISTS da_riportare (
     proposto_da INTEGER REFERENCES persone(id) ON DELETE SET NULL
 );
 
+-- Chi era presente a una riunione. Si scelgono tra le persone già note;
+-- chi non c'è ancora si aggiunge al volo (con il ruolo di Partecipante).
+CREATE TABLE IF NOT EXISTS presenze (
+    riunione_id INTEGER NOT NULL REFERENCES riunioni(id) ON DELETE CASCADE,
+    persona_id  INTEGER NOT NULL REFERENCES persone(id) ON DELETE CASCADE,
+    segnato_da  INTEGER REFERENCES persone(id) ON DELETE SET NULL,
+    PRIMARY KEY (riunione_id, persona_id)
+);
+
 -- Modifiche ai dati da fare una volta sola (es. dare un permesso a un ruolo
 -- esistente): qui si segna quali sono già state fatte. Vedi database.py.
 CREATE TABLE IF NOT EXISTS migrazioni (

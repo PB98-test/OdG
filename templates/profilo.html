@@ -69,7 +69,7 @@
   }
 
   async function esciDaQui() {
-    const avviso = {{ 'true' if io.permessi.values()|select|list else 'false' }}
+    const avviso = {{ 'true' if (io.permessi.riunioni or io.permessi.odg or io.permessi.conclude or io.permessi.persone) else 'false' }}
       ? "Uscendo, per rientrare con il tuo ruolo servirà un link: da un altro tuo dispositivo o da un amministratore. Continuare?"
       : "Uscire da questo dispositivo? Potrai sempre ripresentarti con il tuo nome.";
     if (!confirm(avviso)) return;

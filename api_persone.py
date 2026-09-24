@@ -58,14 +58,14 @@ SENZA_GESTORE = "Deve restare almeno una persona che gestisce persone e ruoli"
 
 def sceglibili(db):
     """Profili che si possono "prendere" dall'elenco al primo accesso: creati in
-    anticipo, senza nessun dispositivo collegato e con un ruolo SENZA permessi.
-    Quelli con permessi si attivano solo con il link personale."""
+    anticipo, senza nessun dispositivo collegato e con un ruolo SENZA permessi
+    di gestione (vedi identita.PERMESSI_DI_GESTIONE). Quelli con permessi di
+    gestione si attivano solo con il link personale."""
     return db.execute(
-        """SELECT p.id, p.nome, p.colore FROM persone p JOIN ruoli r ON r.id=p.ruolo_id
-           WHERE NOT EXISTS (SELECT 1 FROM dispositivi d WHERE d.persona_id=p.id)
-             AND r.perm_riunioni=0 AND r.perm_odg=0 AND r.perm_conclude=0
-             AND r.perm_verbale=0 AND r.perm_persone=0
-           ORDER BY p.nome COLLATE NOCASE"""
+        f"""SELECT p.id, p.nome, p.colore FROM persone p JOIN ruoli r ON r.id=p.ruolo_id
+            WHERE NOT EXISTS (SELECT 1 FROM dispositivi d WHERE d.persona_id=p.id)
+              AND {' AND '.join(f'r.perm_{x}=0' for x in identita.PERMESSI_DI_GESTIONE)}
+            ORDER BY p.nome COLLATE NOCASE"""
     ).fetchall()
 
 

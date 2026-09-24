@@ -82,6 +82,7 @@ function testoVerbale() {
   const righe = [`VERBALE - ${DATI.tipo.nome}`, `${dataEstesa(r.data, true)}`];
   const durata = durataMinuti();
   if (r.iniziata_il) righe.push(`Dalle ${oraDaUtc(r.iniziata_il)} alle ${oraDaUtc(r.conclusa_il)}${durata !== null ? ` (${durata} min)` : ""}`);
+  if (DATI.presenti.length) righe.push(`Presenti: ${DATI.presenti.map(p => p.nome).join(", ")}`);
   righe.push("");
   let n = 0;
   for (const p of DATI.punti.filter(x => x.spuntato_da || (x.fisso && DATI.varie.length))) {

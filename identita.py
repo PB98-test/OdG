@@ -166,5 +166,11 @@ def colore_libero(db):
     return min(COLORI, key=lambda c: (usi[c], COLORI.index(c)))
 
 
+# Permessi "di gestione": chi ne ha anche uno solo entra con il link personale,
+# non scegliendo il proprio nome dall'elenco. "verbale" non conta: dalla
+# tappa 4 lo hanno anche i Partecipanti.
+PERMESSI_DI_GESTIONE = ("riunioni", "odg", "conclude", "persone")
+
+
 def ha_permessi(riga_ruolo):
-    return any(riga_ruolo[f"perm_{p}"] for p in PERMESSI)
+    return any(riga_ruolo[f"perm_{p}"] for p in PERMESSI_DI_GESTIONE)

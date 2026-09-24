@@ -58,6 +58,7 @@
   {% endif %}
 
   <div id="barra-riunione"></div>
+  <div id="presenti"></div>
   <div id="compiti-precedenti"></div>
 
   <section class="sezione">
@@ -143,7 +144,7 @@
     <h2>Nuovo compito</h2>
     <p class="spiega" id="compito-punto"></p>
     <label>Che cosa c'è da fare
-      <input class="campo" name="testo" maxlength="300" placeholder="Prenotare la casa per il campo">
+      <input class="campo" name="testo" maxlength="300" placeholder="Descrivi brevemente il compito">
     </label>
     <label>A chi tocca
       <select class="campo" name="persona_id"><option value="">Nessuno in particolare</option></select>
@@ -156,6 +157,26 @@
       <button type="submit" class="btn btn-blu">Aggiungi</button>
     </div>
   </form>
+</dialog>
+
+{# Chi è presente: spunte sulle persone note, oppure una persona nuova #}
+<dialog id="dlg-presenti">
+  <h2>Presenti</h2>
+  <input class="campo cerca" id="cerca-presenti" placeholder="Cerca un nome" aria-label="Cerca un nome"
+         oninput="filtraPresenti(this.value)">
+  <div id="elenco-presenti" class="elenco-spunte scorrevole"></div>
+  <div class="etichetta-form">Non è nell'elenco?</div>
+  <form class="nuova-persona" onsubmit="nuovoPresente(event)">
+    <input class="campo" name="nome" maxlength="30" placeholder="Nome e iniziale del cognome" aria-label="Nome della persona nuova">
+    <button class="btn btn-tenue" aria-label="Aggiungi">{{ ic('user-plus') }}</button>
+  </form>
+  <p class="nota">Le persone nuove entrano come Partecipanti. Al loro primo accesso troveranno il proprio nome nell'elenco.</p>
+  <div class="errore-form" id="presenti-errore"></div>
+  <div class="dlg-azioni">
+    <span class="spazio"></span>
+    <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
+    <button type="button" class="btn btn-blu" onclick="salvaPresenti()">Salva</button>
+  </div>
 </dialog>
 
 {# Conclusione in due passi: punti non trattati, poi "Quando ci vediamo?" #}

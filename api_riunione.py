@@ -10,8 +10,10 @@ Regole principali (decise con Pietro):
 """
 from flask import Blueprint, g, jsonify, request
 
+import identita
 import odg
 from api import campi_riunione, testo
+from api_persone import pulisci_nome
 from database import get_db
 from identita import puo, richiede
 from odg import adesso_utc, ferma_timer, stato, testo_utc
@@ -47,6 +49,9 @@ def inizia(riunione_id):
         return errore(f"La riunione si può iniziare da {odg.ORE_PRIMA_DI_INIZIARE} ore prima dell'orario fissato")
     db.execute("UPDATE riunioni SET stato='in_corso', iniziata_il=? WHERE id=?",
                (testo_utc(adesso_utc()), riunione_id))
+    # Chi fa partire la riunione è sicuramente presente
+    db.execute("INSERT OR IGNORE INTO presenze (riunione_id, persona_id, segnato_da) VALUES (?,?,?)",
+               (riunione_id, g.io["id"], g.io["id"]))
     db.commit()
     return stato(db, riunione_id)
 
@@ -218,9 +223,80 @@ def compito_fatto(compito_id):
 @bp.get("/persone/nomi")
 @richiede()
 def nomi_persone():
-    """Elenco dei nomi per scegliere a chi assegnare un compito."""
-    righe = get_db().execute("SELECT id, nome, colore FROM persone ORDER BY nome COLLATE NOCASE").fetchall()
+    """Elenco dei nomi per scegliere a chi assegnare un compito o chi è presente.
+    "attiva" = ha già fatto l'accesso almeno da un dispositivo."""
+    righe = get_db().execute(
+        """SELECT p.id, p.nome, p.colore,
+                  EXISTS (SELECT 1 FROM dispositivi d WHERE d.persona_id=p.id) AS attiva
+           FROM persone p ORDER BY p.nome COLLATE NOCASE"""
+    ).fetchall()
     return {"persone": [dict(r) for r in righe]}
+
+
+# ---------------------------------------------------------------- presenti
+
+def riunione_per_presenti(db, riunione_id):
+    """La riunione, se l'elenco dei presenti si può modificare (dall'inizio in poi)."""
+    riunione = db.execute("SELECT * FROM riunioni WHERE id=?", (riunione_id,)).fetchone()
+    if not riunione:
+        return None, errore("Riunione non trovata", 404)
+    if riunione["stato"] == "in_programma":
+        return None, errore("I presenti si segnano quando la riunione è iniziata")
+    return riunione, None
+
+
+@bp.put("/riunioni/<int:riunione_id>/presenti")
+@richiede("verbale")
+def imposta_presenti(riunione_id):
+    """Sostituisce l'elenco dei presenti con quello scelto nella finestra."""
+    ids = {int(i) for i in (request.get_json(silent=True) or {}).get("persone") or []}
+    db = get_db()
+    _, problema = riunione_per_presenti(db, riunione_id)
+    if problema:
+        return problema
+    esistenti = {r["id"] for r in db.execute("SELECT id FROM persone")}
+    db.execute("DELETE FROM presenze WHERE riunione_id=?", (riunione_id,))
+    db.executemany("INSERT INTO presenze (riunione_id, persona_id, segnato_da) VALUES (?,?,?)",
+                   [(riunione_id, pid, g.io["id"]) for pid in ids & esistenti])
+    db.commit()
+    return stato(db, riunione_id)
+
+
+@bp.post("/riunioni/<int:riunione_id>/presenti/io")
+@richiede()
+def ci_sono_anch_io(riunione_id):
+    db = get_db()
+    _, problema = riunione_per_presenti(db, riunione_id)
+    if problema:
+        return problema
+    db.execute("INSERT OR IGNORE INTO presenze (riunione_id, persona_id, segnato_da) VALUES (?,?,?)",
+               (riunione_id, g.io["id"], g.io["id"]))
+    db.commit()
+    return stato(db, riunione_id)
+
+
+@bp.post("/riunioni/<int:riunione_id>/presenti/nuova")
+@richiede("verbale")
+def nuova_persona_presente(riunione_id):
+    """Presente che non ha mai usato OdG: si crea la persona (Partecipante) e la
+    si segna presente. Al suo primo accesso la troverà nell'elenco "Sei una di
+    queste persone?", come i profili creati in anticipo dagli amministratori."""
+    db = get_db()
+    _, problema = riunione_per_presenti(db, riunione_id)
+    if problema:
+        return problema
+    try:
+        nome = pulisci_nome((request.get_json(silent=True) or {}).get("nome"))
+    except ValueError as e:
+        return errore(str(e))
+    if db.execute("SELECT 1 FROM persone WHERE nome=? COLLATE NOCASE", (nome,)).fetchone():
+        return errore("Questa persona c'è già: cercala nell'elenco", 409)
+    persona_id = db.execute("INSERT INTO persone (nome, colore, ruolo_id) VALUES (?,?,2)",
+                            (nome, identita.colore_libero(db))).lastrowid
+    db.execute("INSERT INTO presenze (riunione_id, persona_id, segnato_da) VALUES (?,?,?)",
+               (riunione_id, persona_id, g.io["id"]))
+    db.commit()
+    return dict(stato(db, riunione_id), nuova={"id": persona_id, "nome": nome}), 201
 
 
 # ---------------------------------------------------------------- Varie

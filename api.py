@@ -103,6 +103,19 @@ def modifica_tipo(tipo_id):
     return {"ok": True}
 
 
+@bp.delete("/tipi/<int:tipo_id>")
+@richiede("riunioni")
+def elimina_tipo(tipo_id):
+    """Elimina un tipo di riunione con TUTTE le sue riunioni (e i loro OdG,
+    verbali, compiti...). La pagina chiede conferma due volte."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM tipi_riunione WHERE id=?", (tipo_id,)).fetchone():
+        return errore("Tipo di riunione non trovato", 404)
+    db.execute("DELETE FROM tipi_riunione WHERE id=?", (tipo_id,))   # il resto se ne va in cascata
+    db.commit()
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- riunioni
 
 def campi_riunione(dati):
@@ -168,7 +181,10 @@ def elimina_riunione(riunione_id):
 
 @bp.get("/riunioni/<int:riunione_id>/stato")
 def leggi_stato(riunione_id):
-    return stato(get_db(), riunione_id)
+    db = get_db()
+    if not db.execute("SELECT 1 FROM riunioni WHERE id=?", (riunione_id,)).fetchone():
+        return errore("Riunione non trovata (forse è stata eliminata)", 404)
+    return stato(db, riunione_id)
 
 
 # ---------------------------------------------------------------- punti (modifica diretta)

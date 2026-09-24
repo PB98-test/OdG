@@ -392,3 +392,18 @@ textarea.decisioni {
 .punto.non-trattato .firma a { color: var(--blu); text-decoration: underline; }
 li.titolo-proposte { list-style: none; }
 .elenco-spunte { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+
+/* Presenti */
+.riquadro-presenti { padding: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip-persona {
+  display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 99px;
+  background: var(--sfondo); border: 1px solid var(--bordo); font-size: 14px;
+}
+.azioni-presenti { display: flex; gap: 8px; flex-wrap: wrap; }
+.cerca { width: 100%; margin-bottom: 8px; }
+.scorrevole { max-height: 45vh; overflow-y: auto; }
+.nota-inline { font-size: 12px; color: var(--testo-debole); margin-left: 4px; }
+/* Queste sezioni stanno dentro un contenitore proprio: senza questa regola
+   ".sezione:first-child" toglierebbe loro lo spazio sopra */
+#presenti .sezione, #compiti-precedenti .sezione { margin-top: 22px; }

@@ -175,8 +175,14 @@ def stato(db, riunione_id):
     ).fetchall()
     prec = precedente_conclusa(db, riunione)
     succ = successiva(db, riunione)
+    presenti = db.execute(
+        """SELECT pe.id, pe.nome, pe.colore FROM presenze pr JOIN persone pe ON pe.id = pr.persona_id
+           WHERE pr.riunione_id=? ORDER BY pe.nome COLLATE NOCASE""",
+        (riunione_id,),
+    ).fetchall()
     return {
         "riunione": dict(riunione),
+        "presenti": [dict(p) for p in presenti],
         "punti": punti,
         "proposte": [dict(p) for p in proposte],
         "varie": [dict(v) for v in varie],

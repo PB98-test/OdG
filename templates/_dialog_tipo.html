@@ -3,13 +3,13 @@
   <form method="dialog" onsubmit="salvaTipo(event)">
     <h2 id="dlg-tipo-titolo">Nuovo tipo di riunione</h2>
     <label>Nome
-      <input class="campo" name="nome" maxlength="34" required placeholder="Équipe Giovani" data-conta>
+      <input class="campo" name="nome" maxlength="34" required placeholder="Il nome del gruppo o dell'incontro" data-conta>
     </label>
     <label>Sottotitolo (facoltativo)
-      <input class="campo" name="sottotitolo" maxlength="40" placeholder="Settore Giovani" data-conta>
+      <input class="campo" name="sottotitolo" maxlength="40" placeholder="Settore o ambito, se serve" data-conta>
     </label>
     <label>Luogo abituale
-      <input class="campo" name="luogo_abituale" maxlength="60" data-conta placeholder="Centro diocesano, sala Paolo VI">
+      <input class="campo" name="luogo_abituale" maxlength="60" data-conta placeholder="Dove vi incontrate di solito">
     </label>
     <div class="riga-campi">
       <label>Orario abituale
@@ -24,6 +24,8 @@
     </label>
     <div class="errore-form" id="dlg-tipo-errore"></div>
     <div class="dlg-azioni">
+      <button type="button" class="btn btn-pericolo" id="btn-elimina-tipo" style="display: none"
+              onclick="eliminaTipo()">Elimina</button>
       <span class="spazio"></span>
       <button type="button" class="btn btn-tenue" onclick="this.closest('dialog').close()">Annulla</button>
       <button type="submit" class="btn btn-blu">Salva</button>

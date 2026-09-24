@@ -18,6 +18,7 @@ function apriDialogTipo(tipo = null) {
   f.reset();
   document.getElementById("dlg-tipo-titolo").textContent = tipo ? "Modifica tipo di riunione" : "Nuovo tipo di riunione";
   document.getElementById("riga-archivia").style.display = tipo ? "" : "none";
+  document.getElementById("btn-elimina-tipo").style.display = tipo ? "" : "none";
   if (tipo) {
     for (const campo of ["nome", "sottotitolo", "luogo_abituale", "ora_abituale", "durata_abituale"]) {
       f[campo].value = tipo[campo] ?? "";
@@ -42,6 +43,18 @@ async function salvaTipo(evento) {
   if (!r.ok) return mostraErrore("dlg-tipo-errore", r.data.errore || "Salvataggio non riuscito");
   if (tipoInModifica) location.reload();
   else location.href = `/t/${r.data.codice}`;   // appena creato: vai alla sua pagina
+}
+
+/** Elimina il tipo con tutte le sue riunioni: due conferme, perché non si torna indietro.
+    (Per toglierlo solo dalla Home senza perdere nulla c'è "Archivia".) */
+async function eliminaTipo() {
+  const nome = tipoInModifica.nome;
+  if (!confirm(`Eliminare "${nome}"? Verranno cancellate anche TUTTE le sue riunioni, ` +
+               `con ordini del giorno e verbali.\n\nSe vuoi solo toglierlo dalla Home, usa "Archivia".`)) return;
+  if (!confirm(`Ultima conferma: eliminare definitivamente "${nome}"?`)) return;
+  const r = await api("DELETE", `/api/tipi/${tipoInModifica.id}`);
+  if (!r.ok) return mostraErrore("dlg-tipo-errore", r.data.errore || "Eliminazione non riuscita");
+  location.href = "/";
 }
 
 // ------------------------------------------------------------ riunioni
