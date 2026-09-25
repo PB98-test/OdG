@@ -5,3 +5,5 @@ __pycache__/
 ODG_CHIAVE_GESTIONE*.txt
 vapid_private.pem
 vapid_public.txt
+# Report descrittivo del progetto: resta solo sul PC
+README.md
